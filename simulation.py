@@ -88,6 +88,11 @@ for iteration in range(num_iter):
         # 获取所有点处的均值和方差
         means, variances = Virtual_kriging_model.execute('points', point_x, point_y)
         # 计算 U 函数值
+        # !!! THIS IS NOT RIGHT! The u_values here are the lower confidence bounds,
+        # which are used for optimizations. The problem here is reliability.
+        # U is defined as mean-U*variance=lcb=0, because we are interested in the limit state 0.
+        # So we want to find x such that U is minimized i.e. It takes a small deviation
+        # for point x to cross the limit state. So U=G/var would be correct
         u_values = means - 2.5 * np.sqrt(variances)
         # 找到具有最小 U 函数值的点的索引
         min_u_index = np.argmin(u_values)
