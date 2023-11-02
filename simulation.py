@@ -24,6 +24,7 @@ def G(x1, x2):
 
 
 # 输入两个变量的值
+# Bootstrap how?
 x1_values = [-2.13794975764486, 0.04445213253578309, 0.3631411537417851, 0.030631120880670028, 1.1839697582628255]
 x2_values = [-0.2013680927242529, -1.6083640083357895, 1.665154304490278, 2.2708314089194266, -0.055223676976110435]
 # 计算和输出 G(x1, x2) 的值
@@ -38,6 +39,7 @@ for i, (x1, x2) in enumerate(zip(x1_values, x2_values)):
 data = result_array
 
 # 外循环次数，总的取点数是外循环次数乘以内循环取点数
+# ?? Where convergence condition
 num_iter = 40
 
 DOE_data = data.copy()
@@ -45,6 +47,7 @@ DOE_data = data.copy()
 for iteration in range(num_iter):
     DOE_locations = DOE_data[:, :2]
     DOE_values = DOE_data[:, 2]
+    # !!Need to use Gaussian model
     kriging_model = OrdinaryKriging(DOE_locations[:, 0], DOE_locations[:, 1], DOE_values)
 
     ''' #不需要展示过程图像时，以下代码注释
@@ -88,11 +91,11 @@ for iteration in range(num_iter):
         # 获取所有点处的均值和方差
         means, variances = Virtual_kriging_model.execute('points', point_x, point_y)
         # 计算 U 函数值
-        # !!! THIS IS NOT RIGHT! The u_values here are the lower confidence bounds,
-        # which are used for optimizations. The problem here is reliability.
-        # U is defined as mean-U*variance=lcb=0, because we are interested in the limit state 0.
-        # So we want to find x such that U is minimized i.e. It takes a small deviation
-        # for point x to cross the limit state. So U=G/var would be correct
+        # !!! THIS IS NOT RIGHT! The u_values here are computed as lower confidence bounds,
+        # which are used for optimizations. The problem here is reliability, so 
+        # U is defined as mean-U*std=lcb=0, because we are interested in the limit state 0.
+        # So we want to find x such that U is minimized, i.e. It takes a small deviation
+        # for point x to cross the limit state. So U=G/std would be correct
         u_values = means - 2.5 * np.sqrt(variances)
         # 找到具有最小 U 函数值的点的索引
         min_u_index = np.argmin(u_values)
