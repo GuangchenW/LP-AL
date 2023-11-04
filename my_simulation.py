@@ -6,8 +6,12 @@ import math
 # Convenient 2D Kriging
 from pykrige.ok import OrdinaryKriging
 
+# Density of grid for visualization
+N_GRID = 400
+
 # Monte-Carlo samples, 
 N_mc=10000
+
 with open('data.pkl', 'rb') as file:
     loaded_data = pickle.load(file)
 # for item in loaded_data:
@@ -30,14 +34,16 @@ def G_4B(x1, x2, k=7):
 # Example 2: Modified Rastrigin function
 def G_Ras(x1, x2, d=10):
     def calc_term(x_i):
-        return x_i**2 - 5*np.cs(2*np.pi*x_i)
+        return x_i**2 - 5*np.cos(2*np.pi*x_i)
     term_sum = calc_term(x1) + calc_term(x2)
     result = d - term_sum
     return result
 
+G = G_4B
+
 # This is STEP2 "...a dozen points are enough"
 # Using points from MC samples instead
-N_1 = 24 # Number of bootstrap points
+N_1 = 12 # Number of bootstrap points
 x1_val = point_x1[:N_1]
 x2_val = point_x2[:N_1]
 
@@ -46,11 +52,38 @@ DOE = np.zeros((N_1, 3))
 for i in range(N_1):
     x1 = x1_val[i]
     x2 = x2_val[i]
-    DOE[i, :] = np.array([x1, x2, G_4B(x1, x2)])
+    DOE[i, :] = np.array([x1, x2, G(x1, x2)])
 
+# Learning method U
 def U(mean, variance):
     var = np.maximum(variance, 0.00001)
-    return mean/np.sqrt(var)
+    return abs(mean)/np.sqrt(var)
+
+# Kriging visualization
+def visualize(kriging_model, data):
+    grid_x = np.linspace(-5, 5, N_GRID)
+    grid_y = np.linspace(-5, 5, N_GRID)
+    z, ss = kriging_model.execute('grid', grid_x, grid_y)
+
+    plt.figure()
+    contours = plt.contourf(grid_x, grid_y, z, levels=100, cmap='jet')
+
+    plt.colorbar(label='Value')
+    plt.xlabel('X-coordinate')
+    plt.ylabel('Y-coordinate')
+    plt.title('Kriging Interpolation')
+    # 绘制函数值为零的等值线
+    contours = plt.contour(grid_x, grid_y, z, levels=[0], colors='r', linewidths=2)
+    # 在数据点旁边标注坐标
+    for x1, x2 in data[:,:2]:
+        plt.text(x1, x2, f'({x1:.2f}, {x2:.2f})', fontsize=8, color='black', ha='center', va='center')
+    # 添加数据点
+    plt.scatter(data[:, 0], data[:, 1], c='black', label='Data')
+    # 添加颜色条
+    plt.colorbar(label='Value')
+    # 显示图例
+    plt.legend()
+    plt.show()
 
 max_iter = 100
 final_kriging_model = None
@@ -60,7 +93,8 @@ for i in range(max_iter):
         DOE[:,0], 
         DOE[:,1], 
         DOE[:,2], 
-        variogram_model="gaussian")
+        variogram_model="gaussian",
+        variogram_parameters={'sill':10 ,'range':2.8, 'nugget':0})
 
     # STEP4 Estimate the probabilty of failure based on estimation of all points
     # in MC sample. P_f is calculated by P_f=N_{G<=0}/N_mc
@@ -80,43 +114,45 @@ for i in range(max_iter):
     }
     next_x1 = point_x1[min_id]
     next_x2 = point_x2[min_id]
-
+    
+    print('iter ', i)
+    
     # STEP6 Evaluate stopping condition
     # If min U is greater than 2, probability of making mistake on sign is 0.023 (P.6)
     final_kriging_model = kriging_model
     if next_candidate['s'] >= 2:
         print("break at ", next_candidate['s'])
-        #break
+        break
 
     # STEP7 Update DOE model
-    #print(DOE)
-    DOE = np.append(DOE, [[next_x1, next_x2, G_4B(next_x1, next_x2)]], axis=0)
-    print(i)
+    DOE = np.append(DOE, [[next_x1, next_x2, G(next_x1, next_x2)]], axis=0)
 # TODO: STEP8,9,10
 
 
+# Visualization
 grid_x = np.linspace(-5, 5, 400)
 grid_y = np.linspace(-5, 5, 400)
 z, ss = final_kriging_model.execute('grid', grid_x, grid_y)
-projection, _ = final_kriging_model.execute('grid', grid_x, grid_y)
+#projection, _ = final_kriging_model.execute('grid', grid_x, grid_y)
 
 plt.figure()
 contours = plt.contourf(grid_x, grid_y, z, levels=100, cmap='jet')
 
 plt.colorbar(label='Value')
-plt.xlabel('X-coordinate')
-plt.ylabel('Y-coordinate')
+plt.xlabel('X1-coordinate')
+plt.ylabel('X2-coordinate')
 plt.title('Kriging Interpolation')
 # 绘制函数值为零的等值线
 contours = plt.contour(grid_x, grid_y, z, levels=[0], colors='r', linewidths=2)
 # 在数据点旁边标注坐标
-for x, y in zip(DOE[:, 0], DOE[:, 1]):
-    plt.text(x, y, f'({x:.2f}, {y:.2f})', fontsize=8, color='black', ha='center', va='center')
+for x1, x2, h in DOE:
+    plt.text(x1, x2, f'{h:.2f}', fontsize=8, color='red', ha='center', va='center')
 # 绘制Kriging模型的边界
-plt.contour(grid_x, grid_y, projection, colors='white', linewidths=1, linestyles='dashed', alpha=0.5)
+plt.contour(grid_x, grid_y, z, colors='white', linewidths=1, linestyles='dashed', alpha=0.5)
 # 添加数据点
 plt.scatter(DOE[:, 0], DOE[:, 1], c='black', label='Data')
-plt.scatter(DOE[-5:, 0], DOE[-5:, 1], c='white', label='Data')
+#plt.scatter(DOE[-5:, 0], DOE[-5:, 1], c='white', label='Data')
+
 # 添加颜色条
 plt.colorbar(label='Value')
 # 显示图例
@@ -129,8 +165,7 @@ x1_grid, x2_grid = np.meshgrid(grid_x, grid_y)
 G_values = np.zeros((400,400))
 for i in range(len(grid_x)):
     for j in range(len(grid_y)):
-        G_values[i,j] = G_4B(grid_x[i], grid_y[j])
-
+        G_values[i,j] = G(grid_x[i], grid_y[j])
 
 # 绘制等值线图
 contours = plt.contour(x1_grid, x2_grid, G_values, levels=[0], colors='b', linestyles='dashed')
