@@ -5,6 +5,8 @@ name = "pypi"
 
 [packages]
 pykrige = "*"
+torch = "*"
+gpytorch = "*"
 
 [dev-packages]
 

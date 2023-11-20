@@ -96,6 +96,7 @@ ipython_config.py
 #Pipfile.lock
 Scripts/
 pyvenv.cfg
+share/
 
 # poetry
 #   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
