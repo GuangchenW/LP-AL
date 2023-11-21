@@ -36,7 +36,7 @@ def G_Ras(x1, x2, d=10):
     result = d - term_sum
     return result
 
-G = G_4B
+G = G_Ras
 
 # This is STEP2 "...a dozen points are enough"
 # Using points from MC samples instead
@@ -51,14 +51,51 @@ for i in range(N_INIT):
     x2 = x2_val[i]
     DOE[i, :] = np.array([x1, x2, G(x1, x2)])
 
-# Learning method U
-def U(mean, variance):
+# Original learning method U
+def U_orig(candidate, mean, variance):
     return np.array(list(map(
-        lambda pair: U_base(pair[0], pair[1]), zip(mean, variance)
+        lambda pair: U_orig_helper(pair[0], pair[1]), zip(mean, variance)
         )))
 
-def U_base(mean, variance):
+def U_orig_helper(mean, variance):
     return (abs(mean))/np.sqrt(variance) if variance > 0.01 else 99
+
+def U_mod(candidates, mean, variance):
+    return np.array(list(map(
+        lambda pair: LF2(pair[0], pair[1], pair[2]), zip(candidates, mean, variance)
+        )))
+
+def LF2(candidate, mean, variance):
+    _U = U_orig_helper(mean, variance)
+    min_d = np.inf
+    for observation in DOE:
+        dist = np.linalg.norm(candidate - observation[:2])
+        min_d = dist if dist < min_d else min_d
+    return _U+2/min_d
+
+def LF(candidate, mean, variance):
+    if variance < 0.001:
+        return 99
+
+    max_U = 0
+    target_U = 0
+    max_d = 0
+    min_d = np.inf
+    for observation in DOE:
+        dist = np.linalg.norm(candidate - observation[:2])
+        _U = U_mod_helper(candidate, observation[2], mean, variance)
+        max_U = _U if _U > max_U else max_U
+        max_d = dist if dist > max_d else max_d
+        if dist < min_d:
+            min_d = dist
+            target_U = _U
+    return (target_U/max_U)/(min_d/max_d)
+
+def U_mod_helper(candidate, perform_near, mean, variance):
+    denominator = np.sqrt((mean-perform_near)**2+variance)
+    return abs(mean)/denominator
+
+U = U_mod
 
 max_iter = 50
 final_kriging_model = None
@@ -73,7 +110,8 @@ for i in range(max_iter):
 
     # STEP5 Compute learning function on the population and identify best point
     # If using U(x), G(x)-U(x)sigma(x)=0, and we want to find argmin x
-    scores = U(performance, variance)
+    scores = U(points[0], performance, variance)
+    print(scores)
     min_id = np.argmin(scores)
     next_candidate = {
         'x1': point_x1[min_id], 
@@ -86,14 +124,15 @@ for i in range(max_iter):
     next_x2 = point_x2[min_id]
 
     print('iter ', i)
-    print("Selected (%.3f, %.3f) | Mean : %.3f | Var : %.3f" % (
+    print("Selected (%.3f, %.3f) | Score : %.3f | Mean : %.3f | Var : %.3f" % (
         next_x1, next_x2,
+        next_candidate["s"],
         next_candidate["p"],
         next_candidate["var"]))
     # STEP6 Evaluate stopping condition
     # If min U is greater than 2, probability of making mistake on sign is 0.023 (P.6)
     final_kriging_model = kriging_model
-    if next_candidate['s'] >= 2:
+    if next_candidate['s'] >= 8:
         print("break at ", next_candidate['s'])
         break
 

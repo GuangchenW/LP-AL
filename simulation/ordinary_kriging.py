@@ -46,7 +46,7 @@ class OrdinaryKriging:
 
 		mll = ExactMarginalLogLikelihood(self.likelihood, self.gp)
 
-		max_iter = 1000
+		max_iter = 300
 		epsilon = 0.001
 		prev_loss = 100
 		for i in range(max_iter):
