@@ -1,11 +1,12 @@
 import math
 import torch
 import gpytorch
+import numpy as np
 
 from gpytorch.models import ExactGP
 from gpytorch.means import Mean, ConstantMean, ZeroMean
 from gpytorch.kernels import Kernel, ScaleKernel, MaternKernel, RBFKernel
-from gpytorch.likelihoods import Likelihood, GaussianLikelihood
+from gpytorch.likelihoods import Likelihood, GaussianLikelihood, FixedNoiseGaussianLikelihood
 from gpytorch.mlls import ExactMarginalLogLikelihood
 
 import matplotlib.pyplot as plt
@@ -29,7 +30,6 @@ class OrdinaryKriging:
 		if covar_kernel is None:
 			self.covar_kernel = ScaleKernel(MaternKernel())
 
-		self.likelihood = likelihood or GaussianLikelihood()
 		self.gp = None
 
 	def train(self, inputs, labels, device="cpu"):
@@ -37,6 +37,7 @@ class OrdinaryKriging:
 		labels = torch.tensor(labels)
 
 		if self.gp == None:
+			self.likelihood = FixedNoiseGaussianLikelihood(noise=torch.ones(np.shape(inputs)[0])*0.001)
 			self.gp = _ExactGP(inputs, labels, self.likelihood, self.mean_func, self.covar_kernel)
 			self.gp.to(device)
 		self.gp.train()
@@ -71,13 +72,13 @@ class OrdinaryKriging:
 		self.gp.eval()
 		self.likelihood.eval()
 
-	# TODO: Could be improved with fast pred var?
+	# TODO: Could be improved with fast_pred_var?
 	def execute(self, inputs):
 
 		with torch.no_grad():
 			inputs = torch.tensor(inputs)
 			f_preds = self.gp(inputs)
-			return (f_preds.mean.numpy()[0], f_preds.variance.numpy()[0])
+			return (f_preds.mean.numpy(), f_preds.variance.numpy())
 
 if __name__ == "__main__":
 	train_x = torch.linspace(0,1,100)

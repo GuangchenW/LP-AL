@@ -5,37 +5,24 @@ import math
 
 from ordinary_kriging import OrdinaryKriging
 
-# Monte-Carlo samples, 
+from objective_functions import G_4B, G_Ras
+from acquisition_functions import U_Basic
+
+# Monte-Carlo samples
 N_MC=10000
 
 with open('../data.pkl', 'rb') as file:
     loaded_data = pickle.load(file)
-# for item in loaded_data:
-#    print(item[0], item[1])
+
 point_x1 = np.array([item[0] for item in loaded_data])
 point_x2 = np.array([item[1] for item in loaded_data])
-points = np.dstack((point_x1,point_x2))
+points = np.dstack((point_x1,point_x2))[0]
 
 # Seems to be MC smaples alright
 #plt.plot(point_x1, point_x2, 'bo')
 #plt.show()
 
-# Example 1: 4-branch series system
-def G_4B(x1, x2, k=7):
-    b1 = 3 + 0.1*(x1-x2)**2 - (x1+x2)/np.sqrt(2)
-    b2 = 3 + 0.1*(x1-x2)**2 + (x1+x2)/np.sqrt(2)
-    b3 = (x1-x2) + k/np.sqrt(2)
-    b4 = (x2-x1) + k/np.sqrt(2)
-    return np.min([b1, b2, b3, b4])
-
-# Example 2: Modified Rastrigin function
-def G_Ras(x1, x2, d=10):
-    def calc_term(x_i):
-        return x_i**2 - 5*np.cos(2*np.pi*x_i)
-    term_sum = calc_term(x1) + calc_term(x2)
-    result = d - term_sum
-    return result
-
+# Objective function
 G = G_Ras
 
 # This is STEP2 "...a dozen points are enough"
@@ -51,14 +38,6 @@ for i in range(N_INIT):
     x2 = x2_val[i]
     DOE[i, :] = np.array([x1, x2, G(x1, x2)])
 
-# Original learning method U
-def U_orig(candidate, mean, variance):
-    return np.array(list(map(
-        lambda pair: U_orig_helper(pair[0], pair[1]), zip(mean, variance)
-        )))
-
-def U_orig_helper(mean, variance):
-    return (abs(mean))/np.sqrt(variance) if variance > 0.01 else 99
 
 def U_mod(candidates, mean, variance):
     return np.array(list(map(
@@ -75,7 +54,7 @@ def LF2(candidate, mean, variance):
 
 def LF(candidate, mean, variance):
     if variance < 0.001:
-        return 99
+        return 0
 
     max_U = 0
     target_U = 0
@@ -95,7 +74,8 @@ def U_mod_helper(candidate, perform_near, mean, variance):
     denominator = np.sqrt((mean-perform_near)**2+variance)
     return abs(mean)/denominator
 
-U = U_mod
+#U = U_mod
+U = U_Basic()
 
 max_iter = 50
 final_kriging_model = None
@@ -105,35 +85,27 @@ for i in range(max_iter):
     kriging_model.train(DOE[:,:2], DOE[:,2])
     # STEP4 Estimate the probabilty of failure based on estimation of all points
     # in MC sample. P_f is calculated by P_f=N_{G<=0}/N_MC
-    performance, variance = kriging_model.execute(points)
-    P_f = np.sum(performance <= 0)/N_MC
+
+    #P_f = np.sum(performance <= 0)/N_MC
 
     # STEP5 Compute learning function on the population and identify best point
     # If using U(x), G(x)-U(x)sigma(x)=0, and we want to find argmin x
-    scores = U(points[0], performance, variance)
-    print(scores)
-    min_id = np.argmin(scores)
-    next_candidate = {
-        'x1': point_x1[min_id], 
-        'x2': point_x2[min_id], 
-        'p': performance[min_id],
-        'var': variance[min_id],
-        's': scores[min_id]
-    }
-    next_x1 = point_x1[min_id]
-    next_x2 = point_x2[min_id]
+    candidate = U.acquire(kriging_model, points, DOE[:,:2], DOE[:,2])
 
+    next_x1 = candidate["next"][0]
+    next_x2 = candidate["next"][1]
     print('iter ', i)
-    print("Selected (%.3f, %.3f) | Score : %.3f | Mean : %.3f | Var : %.3f" % (
-        next_x1, next_x2,
-        next_candidate["s"],
-        next_candidate["p"],
-        next_candidate["var"]))
+    print("Selected (%.10f, %.10f) | Score : %.3f | Mean : %.3f | Var : %.3f" % (
+        candidate["next"][0],
+        candidate["next"][1],
+        candidate["utility"],
+        candidate["mean"],
+        candidate["variance"]))
     # STEP6 Evaluate stopping condition
     # If min U is greater than 2, probability of making mistake on sign is 0.023 (P.6)
     final_kriging_model = kriging_model
-    if next_candidate['s'] >= 8:
-        print("break at ", next_candidate['s'])
+    if candidate['utility'] >= 8:
+        print("break at ", candidate['utility'])
         break
 
     # STEP7 Update DOE model
