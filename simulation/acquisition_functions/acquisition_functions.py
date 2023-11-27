@@ -9,17 +9,19 @@ class BaseAcquisitionFunction(ABC):
 	@abstractmethod
 	def acquire(
 		self,
-		model,
 		input_population,
 		doe_input,
 		doe_response,
+		mean,
+		variance,
 		n_points
 	):
 		"""
-		:param model: the model used to approximate the system
 		:param input_population: the subset of the monte-carlo population used for this current acquisition
 		:param doe_input: all inputs acquired so far, including initial doe
 		:param doe_response: outputs observed for `doe_input`
+		:param mean: the estimated mean of `input_population`
+		:param varaince: the estimated variance of `input_population`
 		:param n_points: how many points to acquire. For non-batch AFs, this must be 1
 		"""
 

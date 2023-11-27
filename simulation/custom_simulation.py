@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 import pickle
 import math
 
@@ -7,6 +8,7 @@ from ordinary_kriging import OrdinaryKriging
 
 from objective_functions import G_4B, G_Ras
 from acquisition_functions import U_Basic
+from subset_samplers import U_Sampler
 
 # Monte-Carlo samples
 N_MC=10000
@@ -38,64 +40,38 @@ for i in range(N_INIT):
     x2 = x2_val[i]
     DOE[i, :] = np.array([x1, x2, G(x1, x2)])
 
-
-def U_mod(candidates, mean, variance):
-    return np.array(list(map(
-        lambda pair: LF2(pair[0], pair[1], pair[2]), zip(candidates, mean, variance)
-        )))
-
-def LF2(candidate, mean, variance):
-    _U = U_orig_helper(mean, variance)
-    min_d = np.inf
-    for observation in DOE:
-        dist = np.linalg.norm(candidate - observation[:2])
-        min_d = dist if dist < min_d else min_d
-    return _U+2/min_d
-
-def LF(candidate, mean, variance):
-    if variance < 0.001:
-        return 0
-
-    max_U = 0
-    target_U = 0
-    max_d = 0
-    min_d = np.inf
-    for observation in DOE:
-        dist = np.linalg.norm(candidate - observation[:2])
-        _U = U_mod_helper(candidate, observation[2], mean, variance)
-        max_U = _U if _U > max_U else max_U
-        max_d = dist if dist > max_d else max_d
-        if dist < min_d:
-            min_d = dist
-            target_U = _U
-    return (target_U/max_U)/(min_d/max_d)
-
-def U_mod_helper(candidate, perform_near, mean, variance):
-    denominator = np.sqrt((mean-perform_near)**2+variance)
-    return abs(mean)/denominator
-
 #U = U_mod
 U = U_Basic()
+sampler = U_Sampler(threshold=8)
 
 max_iter = 50
 final_kriging_model = None
+kriging_model = OrdinaryKriging()
+subset_samples = []
 for i in range(max_iter):
     # STEP3 Compute Kriging model
-    kriging_model = OrdinaryKriging()
     kriging_model.train(DOE[:,:2], DOE[:,2])
     # STEP4 Estimate the probabilty of failure based on estimation of all points
     # in MC sample. P_f is calculated by P_f=N_{G<=0}/N_MC
 
-    #P_f = np.sum(performance <= 0)/N_MC
+    mean, variance = kriging_model.execute(points)
+    P_f = np.sum(mean <= 0)/N_MC
+
+    # sample critical region
+    subset_pop, subset_mean, subset_var = sampler.sample(points, DOE[:,:2], DOE[:,2], mean, variance)
+    
+    # log critical region for visualization
+    if len(subset_pop)>0:
+        subset_samples.append(subset_pop)
 
     # STEP5 Compute learning function on the population and identify best point
     # If using U(x), G(x)-U(x)sigma(x)=0, and we want to find argmin x
-    candidate = U.acquire(kriging_model, points, DOE[:,:2], DOE[:,2])
+    candidate = U.acquire(subset_pop, DOE[:,:2], DOE[:,2], subset_mean, subset_var)
 
     next_x1 = candidate["next"][0]
     next_x2 = candidate["next"][1]
     print('iter ', i)
-    print("Selected (%.10f, %.10f) | Score : %.3f | Mean : %.3f | Var : %.3f" % (
+    print("Selected (%.5f, %.5f) | Score : %.3f | Mean : %.3f | Var : %.3f" % (
         candidate["next"][0],
         candidate["next"][1],
         candidate["utility"],
@@ -110,7 +86,7 @@ for i in range(max_iter):
 
     # STEP7 Update DOE model
     DOE = np.append(DOE, [[next_x1, next_x2, G(next_x1, next_x2)]], axis=0)
-# TODO: STEP8,9,10 for when one MC population is not enough
+# TODO: 9,10 for when one MC population is not enough
 
 # STEP8: Compute coefficient of variation of the probability of failure
 z, ss = final_kriging_model.execute(points)
@@ -121,6 +97,16 @@ cov_fail = np.sqrt((1-P_f)/(P_f*N_MC))
 print(f"Estimated probability of failure: {P_f:.3g}")
 print(f"COV of probability of failure: {cov_fail:.3g}")
 
+############################################################
+# subset sample evolution
+fig, ax = plt.subplots()
+artists = []
+for i in range(len(subset_samples)):
+    samples = np.array(subset_samples[i]).T
+    container = ax.scatter(samples[0],samples[1], c="b")
+    artists.append([container])
+ani = animation.ArtistAnimation(fig=fig, artists=artists, interval=400)
+plt.show()
 
 ############################################################
 # Visualization

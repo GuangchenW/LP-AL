@@ -40,6 +40,8 @@ class OrdinaryKriging:
 			self.likelihood = FixedNoiseGaussianLikelihood(noise=torch.ones(np.shape(inputs)[0])*0.001)
 			self.gp = _ExactGP(inputs, labels, self.likelihood, self.mean_func, self.covar_kernel)
 			self.gp.to(device)
+		else:
+			self.gp.set_train_data(inputs, labels, False)
 		self.gp.train()
 		self.likelihood.train()
 
