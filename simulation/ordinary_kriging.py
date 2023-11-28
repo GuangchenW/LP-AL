@@ -37,17 +37,20 @@ class OrdinaryKriging:
 		labels = torch.tensor(labels)
 
 		if self.gp == None:
-			self.likelihood = FixedNoiseGaussianLikelihood(noise=torch.ones(np.shape(inputs)[0])*0.001)
+			self.noise = torch.ones(np.shape(inputs)[0])*0.001
+			self.likelihood = FixedNoiseGaussianLikelihood(noise=self.noise)
 			self.gp = _ExactGP(inputs, labels, self.likelihood, self.mean_func, self.covar_kernel)
 			self.gp.to(device)
 		else:
 			self.gp.set_train_data(inputs, labels, False)
+			self.noise = torch.cat([self.noise, torch.ones(1)*0.001])
+			self.gp.likelihood.noise = self.noise
 		self.gp.train()
-		self.likelihood.train()
+		self.gp.likelihood.train()
 
 		optimizer = torch.optim.Adam(self.gp.parameters(), lr=0.1)
 
-		mll = ExactMarginalLogLikelihood(self.likelihood, self.gp)
+		mll = ExactMarginalLogLikelihood(self.gp.likelihood, self.gp)
 
 		max_iter = 300
 		epsilon = 0.001

@@ -1,1 +1,1 @@
-from .G_functions import G_4B, G_Ras
+from .G_functions import G_4B, G_Ras, G_hat

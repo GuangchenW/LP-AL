@@ -9,9 +9,12 @@ def G_4B(x1, x2, k=7):
     return np.min([b1, b2, b3, b4])
 
 # Example 2: Modified Rastrigin function
-def G_Ras(x1, x2, d=10):
+def G_Ras(x1, x2, d=5):
     def calc_term(x_i):
         return x_i**2 - 5*np.cos(2*np.pi*x_i)
     term_sum = calc_term(x1) + calc_term(x2)
     result = d - term_sum
     return result
+
+def G_hat(x1, x2):
+    return 20-(x1-x2)**2-8*(x1+x2-2)**3

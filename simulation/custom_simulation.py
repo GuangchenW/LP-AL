@@ -6,8 +6,8 @@ import math
 
 from ordinary_kriging import OrdinaryKriging
 
-from objective_functions import G_4B, G_Ras
-from acquisition_functions import U_Basic
+from objective_functions import G_4B, G_Ras, G_hat
+from acquisition_functions import Single_Acquisition
 from subset_samplers import U_Sampler
 
 # Monte-Carlo samples
@@ -25,7 +25,7 @@ points = np.dstack((point_x1,point_x2))[0]
 #plt.show()
 
 # Objective function
-G = G_Ras
+G = G_4B
 
 # This is STEP2 "...a dozen points are enough"
 # Using points from MC samples instead
@@ -40,22 +40,24 @@ for i in range(N_INIT):
     x2 = x2_val[i]
     DOE[i, :] = np.array([x1, x2, G(x1, x2)])
 
-#U = U_mod
-U = U_Basic()
-sampler = U_Sampler(threshold=8)
+U = Single_Acquisition(utility_func="ULP")
+sampler = U_Sampler(threshold=6)
 
-max_iter = 50
+max_iter = 100
 final_kriging_model = None
 kriging_model = OrdinaryKriging()
 subset_samples = []
+p_failures = []
 for i in range(max_iter):
     # STEP3 Compute Kriging model
     kriging_model.train(DOE[:,:2], DOE[:,2])
+    final_kriging_model = kriging_model
     # STEP4 Estimate the probabilty of failure based on estimation of all points
     # in MC sample. P_f is calculated by P_f=N_{G<=0}/N_MC
 
     mean, variance = kriging_model.execute(points)
     P_f = np.sum(mean <= 0)/N_MC
+    p_failures.append(P_f)
 
     # sample critical region
     subset_pop, subset_mean, subset_var = sampler.sample(points, DOE[:,:2], DOE[:,2], mean, variance)
@@ -63,29 +65,38 @@ for i in range(max_iter):
     # log critical region for visualization
     if len(subset_pop)>0:
         subset_samples.append(subset_pop)
+    else:
+        # subset empty, no more candidates left
+        break
 
     # STEP5 Compute learning function on the population and identify best point
     # If using U(x), G(x)-U(x)sigma(x)=0, and we want to find argmin x
-    candidate = U.acquire(subset_pop, DOE[:,:2], DOE[:,2], subset_mean, subset_var)
+    candidates = U.acquire(subset_pop, DOE[:,:2], DOE[:,2], subset_mean, subset_var)
+    print("iter (%i), batch size %i" % (i, len(candidates)))
 
-    next_x1 = candidate["next"][0]
-    next_x2 = candidate["next"][1]
-    print('iter ', i)
-    print("Selected (%.5f, %.5f) | Score : %.3f | Mean : %.3f | Var : %.3f" % (
-        candidate["next"][0],
-        candidate["next"][1],
-        candidate["utility"],
-        candidate["mean"],
-        candidate["variance"]))
+    for candidate in candidates:
+        next_x1 = candidate["next"][0]
+        next_x2 = candidate["next"][1]
+        print("Selected (%.5f, %.5f) | Score : %.3f | Mean : %.3f | Var : %.3f" % (
+            candidate["next"][0],
+            candidate["next"][1],
+            candidate["utility"],
+            candidate["mean"],
+            candidate["variance"]))
+        # STEP7 Update DOE model
+        DOE = np.append(DOE, [[next_x1, next_x2, G(next_x1, next_x2)]], axis=0)
+
     # STEP6 Evaluate stopping condition
     # If min U is greater than 2, probability of making mistake on sign is 0.023 (P.6)
-    final_kriging_model = kriging_model
-    if candidate['utility'] >= 8:
+    if (len(p_failures) > 2 and 
+        abs(p_failures[-1]-p_failures[-2])/p_failures[-1] < 0.001 and
+        abs(p_failures[-2]-p_failures[-3])/p_failures[-2] < 0.001 and
+        candidate["utility"] > 4
+        ):
+        print(p_failures[-3:])
         print("break at ", candidate['utility'])
         break
 
-    # STEP7 Update DOE model
-    DOE = np.append(DOE, [[next_x1, next_x2, G(next_x1, next_x2)]], axis=0)
 # TODO: 9,10 for when one MC population is not enough
 
 # STEP8: Compute coefficient of variation of the probability of failure
@@ -104,8 +115,9 @@ artists = []
 for i in range(len(subset_samples)):
     samples = np.array(subset_samples[i]).T
     container = ax.scatter(samples[0],samples[1], c="b")
-    artists.append([container])
-ani = animation.ArtistAnimation(fig=fig, artists=artists, interval=400)
+    txt = ax.text(0.05,0.05, str(i), ha="right", va="bottom", transform=fig.transFigure)
+    artists.append([container, txt])
+ani = animation.ArtistAnimation(fig=fig, artists=artists, interval=8000/len(subset_samples))
 plt.show()
 
 ############################################################
