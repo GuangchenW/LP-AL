@@ -1,1 +1,2 @@
 from .single_acquisition import Single_Acquisition
+from .batch_acquisition import Batch_Acquisition

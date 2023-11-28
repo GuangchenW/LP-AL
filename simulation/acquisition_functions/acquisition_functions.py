@@ -1,8 +1,14 @@
 from abc import ABC, abstractmethod
+from simulation.utility_functions import U, ULP
 
 class BaseAcquisitionFunction(ABC):
-	def __init__(self, name, device="cpu", logger=None):
-		self.name = name
+	def __init__(self, utility_func, device="cpu", logger=None):
+		self.name = utility_func
+		match utility_func:
+			case "U":
+				self.utility_func = U
+			case "ULP":
+				self.utility_func = ULP
 		self.device = device
 		self.logger = logger
 

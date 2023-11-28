@@ -43,7 +43,7 @@ class OrdinaryKriging:
 			self.gp.to(device)
 		else:
 			self.gp.set_train_data(inputs, labels, False)
-			self.noise = torch.cat([self.noise, torch.ones(1)*0.001])
+			self.noise = torch.ones(np.shape(inputs)[0])*0.001
 			self.gp.likelihood.noise = self.noise
 		self.gp.train()
 		self.gp.likelihood.train()

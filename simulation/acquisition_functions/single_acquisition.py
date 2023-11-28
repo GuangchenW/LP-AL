@@ -1,17 +1,10 @@
 import numpy as np
 
 from .acquisition_functions import AcquisitionFunction
-from simulation.utility_functions import U, ULP
 
 class Single_Acquisition(AcquisitionFunction):
 	def __init__(self, utility_func="U", device="cpu"):
-		self.name = utility_func
-		match utility_func:
-			case "U":
-				self.utility_func = U
-			case "ULP":
-				self.utility_func = ULP
-		super().__init__(name=self.name, device=device)
+		super().__init__(utility_func=utility_func, device=device)
 
 	def acquire(
 		self,
