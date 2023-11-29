@@ -7,7 +7,7 @@ def U(candidates, mean, variance, doe_input, doe_response):
 			)))
 
 def _U(mean, variance):
-	return 1000 if variance < 0.0001 else abs(mean)/np.sqrt(variance)
+	return 1000 if variance < 0.1 else abs(mean)/np.sqrt(variance)
 
 
 def ULP(candidates, mean, variance, doe_input, doe_response):
@@ -24,7 +24,7 @@ def ULP(candidates, mean, variance, doe_input, doe_response):
 
 	out = []
 	for d,u in zip(dist, util):
-		out.append((u/max_u)/(d/max_d))
+		out.append(u/(d/max_d))
 	return np.array(out)
 
 def LF(candidate, mean, variance, doe_input, doe_response):

@@ -28,7 +28,7 @@ class OrdinaryKriging:
 		self.mean_func = mean_func or ConstantMean()
 
 		if covar_kernel is None:
-			self.covar_kernel = ScaleKernel(MaternKernel())
+			self.covar_kernel = ScaleKernel(RBFKernel())
 
 		self.gp = None
 

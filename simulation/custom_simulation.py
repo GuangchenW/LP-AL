@@ -25,7 +25,7 @@ points = np.dstack((point_x1,point_x2))[0]
 #plt.show()
 
 # Objective function
-G = G_hat
+G = G_Ras
 
 # This is STEP2 "...a dozen points are enough"
 # Using points from MC samples instead
@@ -64,7 +64,7 @@ for i in range(max_iter):
         ):
         print(p_failures[-3:])
         print("break at ", candidate['utility'])
-        break
+        #break
 
     mean, variance = kriging_model.execute(points)
     P_f = np.sum(mean <= 0)/N_MC
@@ -147,8 +147,8 @@ contours = plt.contour(grid_x, grid_y, z, levels=[0], colors='r', linewidths=2)
 # Plot the points queried
 plt.scatter(DOE[:, 0], DOE[:, 1], c='black', label='Data')
 # Label the points queried with their actual value
-for x1, x2, h in DOE:
-    plt.text(x1, x2, f'{h:.2f}', fontsize=8, color='white', ha='center', va='center')
+#for x1, x2, h in DOE:
+#    plt.text(x1, x2, f'{h:.2f}', fontsize=8, color='white', ha='center', va='center')
 
 # Kriging model contour
 plt.contour(grid_x, grid_y, z, colors='white', linewidths=1, linestyles='dashed', alpha=0.5)
