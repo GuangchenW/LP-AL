@@ -18,3 +18,9 @@ def G_Ras(x1, x2, d=5):
 
 def G_hat(x1, x2):
     return 20-(x1-x2)**2-8*(x1+x2-2)**3
+
+# 2-branch series system
+def G_2B(x1, x2):
+    b1 = 3 + 0.1*(x1-x2)**2 - (x1+x2)/np.sqrt(2)
+    b2 = 3 + 0.1*(x1-x2)**2 + (x1+x2)/np.sqrt(2)
+    return np.min([b1, b2])

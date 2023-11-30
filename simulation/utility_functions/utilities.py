@@ -20,30 +20,28 @@ def ULP(candidates, mean, variance, doe_input, doe_response):
 		util.append(u)
 	
 	max_d = np.max(dist)
-	max_u = np.max(util)
+
+	def slerp(x):
+		return 1/(1+np.exp(-10*(x-0.5)))
 
 	out = []
 	for d,u in zip(dist, util):
-		out.append(u/(d/max_d))
+		out.append(u/slerp(d/max_d))
 	return np.array(out)
 
 def LF(candidate, mean, variance, doe_input, doe_response):
 	if variance < 0.0001:
-		return 1000
+		return [0, 1000]
 
-	max_U = 0
-	min_U = 0
-	max_d = 0
+	min_U = 1000
 	min_d = np.inf
 	for i in range(len(doe_input)):
 		dist = np.linalg.norm(candidate - doe_input[i])
-		util = ULP_helper(candidate, doe_response[i], mean, variance)
 		#max_U = util if util > max_U else max_U
 		#max_d = dist if dist > max_d else max_d
 		if dist < min_d:
 			min_d = dist
-			min_U = util
-	#out = (target_U/max_U)/(min_d/max_d)
+			min_U = ULP_helper(candidate, doe_response[i], mean, variance)
 	return [min_d, min_U]
 
 def ULP_helper(candidate, perform_near, mean, variance):

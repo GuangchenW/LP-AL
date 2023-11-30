@@ -6,7 +6,7 @@ import math
 
 from ordinary_kriging import OrdinaryKriging
 
-from objective_functions import G_4B, G_Ras, G_hat
+from objective_functions import G_4B, G_2B, G_Ras, G_hat
 from acquisition_functions import Single_Acquisition, Batch_Acquisition
 from subset_samplers import U_Sampler
 
@@ -25,7 +25,7 @@ points = np.dstack((point_x1,point_x2))[0]
 #plt.show()
 
 # Objective function
-G = G_Ras
+G = G_2B
 
 # This is STEP2 "...a dozen points are enough"
 # Using points from MC samples instead
@@ -40,19 +40,16 @@ for i in range(N_INIT):
     x2 = x2_val[i]
     DOE[i, :] = np.array([x1, x2, G(x1, x2)])
 
-U = Batch_Acquisition(utility_func="ULP")
-sampler = U_Sampler(threshold=6)
-
 max_iter = 100
-final_kriging_model = None
 kriging_model = OrdinaryKriging()
+U = Batch_Acquisition(kriging_model, utility_func="ULP")
+sampler = U_Sampler(threshold=2)
 subset_samples = []
 p_failures = []
 for i in range(max_iter):
 
     # STEP3 Compute Kriging model
     kriging_model.train(DOE[:,:2], DOE[:,2])
-    final_kriging_model = kriging_model
     # STEP4 Estimate the probabilty of failure based on estimation of all points
     # in MC sample. P_f is calculated by P_f=N_{G<=0}/N_MC
 
@@ -101,6 +98,7 @@ for i in range(max_iter):
 # TODO: 9,10 for when one MC population is not enough
 
 # STEP8: Compute coefficient of variation of the probability of failure
+final_kriging_model = kriging_model
 z, ss = final_kriging_model.execute(points)
 num_negative_predictions = np.sum(z < 0)
 P_f = np.maximum(num_negative_predictions / N_MC, 0.0001)
@@ -145,7 +143,7 @@ plt.title('Kriging Interpolation')
 contours = plt.contour(grid_x, grid_y, z, levels=[0], colors='r', linewidths=2)
 
 # Plot the points queried
-plt.scatter(DOE[:, 0], DOE[:, 1], c='black', label='Data')
+plt.scatter(DOE[:, 0], DOE[:, 1], s=2, c='black', label='Data')
 # Label the points queried with their actual value
 #for x1, x2, h in DOE:
 #    plt.text(x1, x2, f'{h:.2f}', fontsize=8, color='white', ha='center', va='center')

@@ -79,10 +79,19 @@ class OrdinaryKriging:
 
 	# TODO: Could be improved with fast_pred_var?
 	def execute(self, inputs):
-
 		with torch.no_grad():
 			inputs = torch.tensor(inputs)
 			f_preds = self.gp(inputs)
+			return (f_preds.mean.numpy(), f_preds.variance.numpy())
+
+	def fantasize(self, inputs, targets, tests):
+		noises = torch.ones(np.shape(inputs)[0])*0.001
+		inputs = torch.tensor(inputs)
+		targets = torch.tensor(targets)
+		tests = torch.tensor(tests)
+		model = self.gp.get_fantasy_model(inputs, targets, noise=noises)
+		with torch.no_grad():
+			f_preds = model(tests)
 			return (f_preds.mean.numpy(), f_preds.variance.numpy())
 
 if __name__ == "__main__":

@@ -3,9 +3,10 @@ import numpy as np
 from .acquisition_functions import AcquisitionFunction
 
 class Batch_Acquisition(AcquisitionFunction):
-    def __init__(self, utility_func="ULP", device="cpu"):
+    def __init__(self, model, utility_func="ULP", device="cpu"):
         if not utility_func in ["ULP"]:
             raise Exception("utility_func {utility_func} not supported for batch acquisition")
+        self.model = model
         super().__init__(utility_func=utility_func, device=device)
 
     def acquire(
@@ -32,5 +33,11 @@ class Batch_Acquisition(AcquisitionFunction):
 
             doe_input = np.append(doe_input, [input_population[min_id]], axis=0)
             doe_response = np.append(doe_response, [mean[min_id]])
+            #variance[min_id] = 0
+            k=i+1
+            mean, variance = self.model.fantasize(doe_input[-k:], doe_response[-k:], input_population)
+
+            #m, v = self.model.fantasize([[1,1],[2,2]], [10,5], [[1,1],[2,2]])
+            #print(m,v)
 
         return np.array(out)
