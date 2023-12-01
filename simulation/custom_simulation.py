@@ -25,7 +25,7 @@ points = np.dstack((point_x1,point_x2))[0]
 #plt.show()
 
 # Objective function
-G = G_2B
+G = G_4B
 
 # This is STEP2 "...a dozen points are enough"
 # Using points from MC samples instead

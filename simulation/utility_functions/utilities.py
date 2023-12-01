@@ -30,7 +30,7 @@ def ULP(candidates, mean, variance, doe_input, doe_response):
 	return np.array(out)
 
 def LF(candidate, mean, variance, doe_input, doe_response):
-	if variance < 0.0001:
+	if variance < 0.001:
 		return [0, 1000]
 
 	min_U = 1000
