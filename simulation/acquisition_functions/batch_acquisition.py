@@ -4,8 +4,8 @@ from .acquisition_functions import AcquisitionFunction
 
 class Batch_Acquisition(AcquisitionFunction):
     def __init__(self, model, utility_func="ULP", device="cpu"):
-        if not utility_func in ["ULP"]:
-            raise Exception("utility_func {utility_func} not supported for batch acquisition")
+        #if not utility_func in ["ULP"]:
+        #    raise Exception("utility_func {utility_func} not supported for batch acquisition")
         self.model = model
         super().__init__(utility_func=utility_func, device=device)
 
@@ -33,7 +33,6 @@ class Batch_Acquisition(AcquisitionFunction):
 
             doe_input = np.append(doe_input, [input_population[min_id]], axis=0)
             doe_response = np.append(doe_response, [mean[min_id]])
-            #variance[min_id] = 0
             k=i+1
             mean, variance = self.model.fantasize(doe_input[-k:], doe_response[-k:], input_population)
 

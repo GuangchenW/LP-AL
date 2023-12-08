@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import stats
 
 def U(candidates, mean, variance, doe_input, doe_response):
 	return np.array(list(map(
@@ -47,3 +48,54 @@ def LF(candidate, mean, variance, doe_input, doe_response):
 def ULP_helper(candidate, perform_near, mean, variance):
 	denominator = np.sqrt((mean-perform_near)**2+variance)
 	return abs(mean)/denominator
+
+def NEFF(candidates, mean, variance, doe_input, doe_response):
+	dist = []
+	util = []
+	for mu, var in zip(mean, variance):
+		result = _EFF(candidates, mu, var, doe_input, doe_response)
+		dist.append(result[0])
+		util.append(-result[1])
+
+	max_d = np.max(dist)
+
+	def slerp(x):
+		return 1/(1+np.exp(-10*(x-0.5)))
+
+	out = []
+	for d,u in zip(dist, util):
+		out.append(u/slerp(d/max_d))
+	return np.array(out)
+
+def _EFF(candidate, mean, variance, doe_input, doe_response):
+	mu = mean
+	var = variance
+
+	std = np.sqrt(var)
+
+	if std < 0.05:
+		return [0, -1000]
+
+	epsilon = 2*std
+	cprob = stats.norm.cdf(-mu/std)
+	cprob_low = stats.norm.cdf((-epsilon-mu)/std)
+	cprob_high = stats.norm.cdf((epsilon-mu)/std)
+
+	term1=mu*(2*cprob-cprob_low-cprob_high)
+
+	prob = stats.norm.pdf(-mu/std)
+	prob_low = stats.norm.pdf((-epsilon-mu)/std)
+	prob_high = stats.norm.pdf((epsilon-mu)/std)
+	
+	term2=std*(2*prob-prob_low-prob_high)
+	term3=cprob_high-cprob_low
+
+	eff = term1-term2+term3
+
+	min_d = np.inf
+	for i in range(len(doe_input)):
+		dist = np.linalg.norm(candidate - doe_input[i])
+		if dist < min_d:
+			min_d = dist
+
+	return [min_d, eff]

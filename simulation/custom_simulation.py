@@ -25,7 +25,7 @@ points = np.dstack((point_x1,point_x2))[0]
 #plt.show()
 
 # Objective function
-G = G_4B
+G = G_Ras
 
 # This is STEP2 "...a dozen points are enough"
 # Using points from MC samples instead
@@ -42,7 +42,7 @@ for i in range(N_INIT):
 
 max_iter = 100
 kriging_model = OrdinaryKriging()
-U = Batch_Acquisition(kriging_model, utility_func="ULP")
+U = Batch_Acquisition(kriging_model, utility_func="NEFF")
 sampler = U_Sampler(threshold=2)
 subset_samples = []
 p_failures = []
