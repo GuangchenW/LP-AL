@@ -16,29 +16,28 @@ N_MC=10000
 with open('../data.pkl', 'rb') as file:
     loaded_data = pickle.load(file)
 
-point_x1 = np.array([item[0] for item in loaded_data])
-point_x2 = np.array([item[1] for item in loaded_data])
-points = np.dstack((point_x1,point_x2))[0]
+#point_x1 = np.array([item[0] for item in loaded_data])
+#point_x2 = np.array([item[1] for item in loaded_data])
+#points = np.dstack((point_x1,point_x2))[0]
+
+points = np.array(loaded_data)
 
 # Seems to be MC smaples alright
 #plt.plot(point_x1, point_x2, 'bo')
 #plt.show()
 
 # Objective function
-G = G_Ras
+G = G_4B
 
 # This is STEP2 "...a dozen points are enough"
 # Using points from MC samples instead
 N_INIT = 10 # Number of bootstrap points
-x1_val = point_x1[:N_INIT]
-x2_val = point_x2[:N_INIT]
 
 # Query performance function and repack data
-DOE = np.zeros((N_INIT, 3))
+DOE_input = points[:N_INIT]
+DOE_output = np.zeros(N_INIT)
 for i in range(N_INIT):
-    x1 = x1_val[i]
-    x2 = x2_val[i]
-    DOE[i, :] = np.array([x1, x2, G(x1, x2)])
+    DOE_output[i] = G(DOE_input[i])
 
 max_iter = 100
 kriging_model = OrdinaryKriging()
@@ -49,7 +48,7 @@ p_failures = []
 for i in range(max_iter):
 
     # STEP3 Compute Kriging model
-    kriging_model.train(DOE[:,:2], DOE[:,2])
+    kriging_model.train(DOE_input, DOE_output)
     # STEP4 Estimate the probabilty of failure based on estimation of all points
     # in MC sample. P_f is calculated by P_f=N_{G<=0}/N_MC
 
@@ -58,7 +57,7 @@ for i in range(max_iter):
     mean, variance = kriging_model.execute(points)
 
     # sample critical region
-    subset_pop, subset_mean, subset_var = sampler.sample(points, DOE[:,:2], DOE[:,2], mean, variance)
+    subset_pop, subset_mean, subset_var = sampler.sample(points, DOE_input, DOE_output, mean, variance)
     
     N_f = np.sum(mean < 0) # number of failures by Kriging model
     S_f = np.sum(subset_mean < 0) # number of likely false negatives 
@@ -80,12 +79,10 @@ for i in range(max_iter):
 
     # STEP5 Compute learning function on the population and identify best point
     # If using U(x), G(x)-U(x)sigma(x)=0, and we want to find argmin x
-    candidates = U.acquire(subset_pop, DOE[:,:2], DOE[:,2], subset_mean, subset_var, 4)
+    candidates = U.acquire(subset_pop, DOE_input, DOE_output, subset_mean, subset_var, 4)
     print("iter (%i), batch size %i" % (i, len(candidates)))
 
     for candidate in candidates:
-        next_x1 = candidate["next"][0]
-        next_x2 = candidate["next"][1]
         print("Selected (%.5f, %.5f) | Score : %.3f | Mean : %.3f | Var : %.3f" % (
             candidate["next"][0],
             candidate["next"][1],
@@ -93,7 +90,8 @@ for i in range(max_iter):
             candidate["mean"],
             candidate["variance"]))
         # STEP7 Update DOE model
-        DOE = np.append(DOE, [[next_x1, next_x2, G(next_x1, next_x2)]], axis=0)
+        DOE_input = np.append(DOE_input, [candidate["next"]], axis=0)
+        DOE_output = np.append(DOE_output, G(candidate["next"]))
     print("--"*25)
 
 # TODO: 9,10 for when one MC population is not enough
@@ -144,7 +142,7 @@ plt.title('Kriging Interpolation')
 contours = plt.contour(grid_x, grid_y, z, levels=[0], colors='r', linewidths=2)
 
 # Plot the points queried
-plt.scatter(DOE[:, 0], DOE[:, 1], s=2, c='black', label='Data')
+plt.scatter(DOE_input[:, 0], DOE_input[:, 1], s=2, c='black', label='Data')
 # Label the points queried with their actual value
 #for x1, x2, h in DOE:
 #    plt.text(x1, x2, f'{h:.2f}', fontsize=8, color='white', ha='center', va='center')
@@ -163,7 +161,7 @@ x1_grid, x2_grid = np.meshgrid(grid_x, grid_y)
 G_values = np.zeros((N_GRID, N_GRID))
 for i in range(len(grid_x)):
     for j in range(len(grid_y)):
-        G_values[i,j] = G(grid_x[i], grid_y[j])
+        G_values[i,j] = G([grid_x[i], grid_y[j]])
 
 # Actual limit state i.e. G(x1, x2)=0
 contours = plt.contour(x1_grid, x2_grid, G_values, levels=[0], colors='b', linestyles='dashed')

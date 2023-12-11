@@ -1,7 +1,9 @@
 import numpy as np
 
 # Example 1: 4-branch series system
-def G_4B(x1, x2, k=7):
+def G_4B(x, k=7):
+    x1=x[0]
+    x2=x[1]
     b1 = 3 + 0.1*(x1-x2)**2 - (x1+x2)/np.sqrt(2)
     b2 = 3 + 0.1*(x1-x2)**2 + (x1+x2)/np.sqrt(2)
     b3 = (x1-x2) + k/np.sqrt(2)
@@ -9,18 +11,24 @@ def G_4B(x1, x2, k=7):
     return np.min([b1, b2, b3, b4])
 
 # Example 2: Modified Rastrigin function
-def G_Ras(x1, x2, d=5):
+def G_Ras(x, d=5):
+    x1=x[0]
+    x2=x[1]
     def calc_term(x_i):
         return x_i**2 - 5*np.cos(2*np.pi*x_i)
     term_sum = calc_term(x1) + calc_term(x2)
     result = d - term_sum
     return result
 
-def G_hat(x1, x2):
+def G_hat(x):
+    x1=x[0]
+    x2=x[1]
     return 20-(x1-x2)**2-8*(x1+x2-2)**3
 
 # 2-branch series system
-def G_2B(x1, x2):
+def G_2B(x):
+    x1=x[0]
+    x2=x[1]
     b1 = 3 + 0.1*(x1-x2)**2 - (x1+x2)/np.sqrt(2)
     b2 = 3 + 0.1*(x1-x2)**2 + (x1+x2)/np.sqrt(2)
     return np.min([b1, b2])
