@@ -42,8 +42,8 @@ for i in range(N_INIT):
 
 max_iter = 100
 kriging_model = OrdinaryKriging()
-U = Batch_Acquisition(kriging_model, utility_func="NEFF")
-sampler = U_Sampler(threshold=2)
+U = Batch_Acquisition(kriging_model, utility_func="NH")
+sampler = U_Sampler(threshold=6)
 subset_samples = []
 p_failures = []
 for i in range(max_iter):
@@ -53,23 +53,24 @@ for i in range(max_iter):
     # STEP4 Estimate the probabilty of failure based on estimation of all points
     # in MC sample. P_f is calculated by P_f=N_{G<=0}/N_MC
 
-    # STEP6 Evaluate stopping condition
-    # If min U is greater than 2, probability of making mistake on sign is 0.023 (P.6)
-    if (len(p_failures) > 2 and 
-        abs(p_failures[-1]-p_failures[-2])/p_failures[-1] < 0.001 and
-        abs(p_failures[-2]-p_failures[-3])/p_failures[-2] < 0.001 
-        ):
-        print(p_failures[-3:])
-        print("break at ", candidate['utility'])
-        #break
 
+    # acquire all estimations
     mean, variance = kriging_model.execute(points)
-    P_f = np.sum(mean <= 0)/N_MC
-    p_failures.append(P_f)
 
     # sample critical region
     subset_pop, subset_mean, subset_var = sampler.sample(points, DOE[:,:2], DOE[:,2], mean, variance)
     
+    N_f = np.sum(mean < 0) # number of failures by Kriging model
+    S_f = np.sum(subset_mean < 0) # number of likely false negatives 
+    S_s = np.sum(subset_mean > 0) # number of likely false positives
+    epsilon_max = max(abs(N_f/(N_f-S_f)-1), abs(N_f/(N_f+S_s)-1))
+    epsilon_thr = 0.05
+    print("epsilon_max : ", epsilon_max)
+
+    # STEP6 Evaluate stopping condition
+    if (epsilon_max < epsilon_thr):
+        break
+
     # log critical region for visualization
     if len(subset_pop)>0:
         subset_samples.append(subset_pop)

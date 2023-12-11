@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from simulation.utility_functions import U, ULP, NEFF
+from simulation.utility_functions import U, ULP, NEFF, NH
 
 class BaseAcquisitionFunction(ABC):
 	def __init__(self, utility_func, device="cpu", logger=None):
@@ -11,6 +11,8 @@ class BaseAcquisitionFunction(ABC):
 				self.utility_func = ULP
 			case "NEFF":
 				self.utility_func = NEFF
+			case "NH":
+				self.utility_func = NH
 		self.device = device
 		self.logger = logger
 

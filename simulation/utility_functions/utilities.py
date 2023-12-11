@@ -52,10 +52,10 @@ def ULP_helper(candidate, perform_near, mean, variance):
 def NEFF(candidates, mean, variance, doe_input, doe_response):
 	dist = []
 	util = []
-	for mu, var in zip(mean, variance):
-		result = _EFF(candidates, mu, var, doe_input, doe_response)
-		dist.append(result[0])
-		util.append(-result[1])
+	for i in range(len(candidates)):
+		d,u = _EFF(candidates[i], mean[i], variance[i], doe_input, doe_response)
+		dist.append(d)
+		util.append(-u)
 
 	max_d = np.max(dist)
 
@@ -99,3 +99,45 @@ def _EFF(candidate, mean, variance, doe_input, doe_response):
 			min_d = dist
 
 	return [min_d, eff]
+
+def NH(candidates, mean, variance, doe_input, doe_response):
+	dist = []
+	util = []
+	for i in range(len(candidates)):
+		d,u = _H(candidates[i], mean[i], variance[i], doe_input, doe_response)
+		dist.append(d)
+		util.append(-u)
+
+	max_d = np.max(dist)
+
+	def slerp(x):
+		return 1/(1+np.exp(-10*(x-0.5)))
+
+	out = []
+	for d,u in zip(dist, util):
+		out.append(u/slerp(d/max_d))
+	return np.array(out)
+
+def _H(candidate, mean, variance, doe_input, doe_response):
+	mu = mean
+	var = variance
+
+	std = np.sqrt(var)
+
+	if std < 0.05:
+		return [0, -1000]
+
+	upper = (2*std-mu)/std
+	lower = (-2*std-mu)/std
+
+	term1 = np.log(np.sqrt(2*np.pi)*std+0.5)*(stats.norm.cdf(upper)-stats.norm.cdf(lower))
+	term2 = (std-0.5*mu)*stats.norm.pdf(upper)+(std+0.5*mu)*stats.norm.pdf(lower)
+	h = abs(term1-term2)
+
+	min_d = np.inf
+	for i in range(len(doe_input)):
+		dist = np.linalg.norm(candidate - doe_input[i])
+		if dist < min_d:
+			min_d = dist
+
+	return [min_d, h]
