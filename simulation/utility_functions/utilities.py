@@ -21,6 +21,7 @@ def ULP(candidates, mean, variance, doe_input, doe_response):
 		util.append(u)
 	
 	max_d = np.max(dist)
+	print("max distance : ", max_d)
 
 	def slerp(x):
 		return 1/(1+np.exp(-10*(x-0.5)))
@@ -31,7 +32,7 @@ def ULP(candidates, mean, variance, doe_input, doe_response):
 	return np.array(out)
 
 def LF(candidate, mean, variance, doe_input, doe_response):
-	if variance < 0.001:
+	if variance < 0.0001:
 		return [0, 1000]
 
 	min_U = 1000
@@ -107,6 +108,7 @@ def NH(candidates, mean, variance, doe_input, doe_response):
 		d,u = _H(candidates[i], mean[i], variance[i], doe_input, doe_response)
 		dist.append(d)
 		util.append(-u)
+	return util
 
 	max_d = np.max(dist)
 

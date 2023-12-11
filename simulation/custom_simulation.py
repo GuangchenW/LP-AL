@@ -6,32 +6,31 @@ import math
 
 from ordinary_kriging import OrdinaryKriging
 
-from objective_functions import G_4B, G_2B, G_Ras, G_hat
+from objective_functions import G_4B, G_2B, G_Ras, G_hat, G_beam
 from acquisition_functions import Single_Acquisition, Batch_Acquisition
 from subset_samplers import U_Sampler
 
 # Monte-Carlo samples
-N_MC=10000
-
 with open('../data.pkl', 'rb') as file:
     loaded_data = pickle.load(file)
 
-#point_x1 = np.array([item[0] for item in loaded_data])
-#point_x2 = np.array([item[1] for item in loaded_data])
-#points = np.dstack((point_x1,point_x2))[0]
+with open('./data.npy', 'rb') as file:
+    points = np.load(file)
 
-points = np.array(loaded_data)
+#points = np.array(loaded_data)
+
+N_MC = np.shape(points)[0]
 
 # Seems to be MC smaples alright
 #plt.plot(point_x1, point_x2, 'bo')
 #plt.show()
 
 # Objective function
-G = G_4B
+G = G_beam
 
 # This is STEP2 "...a dozen points are enough"
 # Using points from MC samples instead
-N_INIT = 10 # Number of bootstrap points
+N_INIT = 15 # Number of bootstrap points
 
 # Query performance function and repack data
 DOE_input = points[:N_INIT]
@@ -42,7 +41,7 @@ for i in range(N_INIT):
 max_iter = 100
 kriging_model = OrdinaryKriging()
 U = Batch_Acquisition(kriging_model, utility_func="NH")
-sampler = U_Sampler(threshold=6)
+sampler = U_Sampler(threshold=2)
 subset_samples = []
 p_failures = []
 for i in range(max_iter):
@@ -83,7 +82,7 @@ for i in range(max_iter):
     print("iter (%i), batch size %i" % (i, len(candidates)))
 
     for candidate in candidates:
-        print("Selected (%.5f, %.5f) | Score : %.3f | Mean : %.3f | Var : %.3f" % (
+        print("Selected (%.5f, %.5f) | Score : %.3f | Mean : %.3g | Var : %.3g" % (
             candidate["next"][0],
             candidate["next"][1],
             candidate["utility"],
@@ -103,20 +102,29 @@ num_negative_predictions = np.sum(z < 0)
 P_f = np.maximum(num_negative_predictions / N_MC, 0.0001)
 cov_fail = np.sqrt((1-P_f)/(P_f*N_MC))
 
+N_true_f = 0
+for i in range(N_MC):
+    if G(points[i]) < 0:
+        N_true_f += 1
+
+print(f"True probability of failure: {N_true_f/N_MC:.3g}")
 print(f"Estimated probability of failure: {P_f:.3g}")
 print(f"COV of probability of failure: {cov_fail:.3g}")
 
+if not np.shape(DOE_input)[1] == 2:
+    exit()
 ############################################################
 # subset sample evolution
-fig, ax = plt.subplots()
-artists = []
-for i in range(len(subset_samples)):
-    samples = np.array(subset_samples[i]).T
-    container = ax.scatter(samples[0],samples[1], c="b")
-    txt = ax.text(0.05,0.05, str(i), ha="right", va="bottom", transform=fig.transFigure)
-    artists.append([container, txt])
-ani = animation.ArtistAnimation(fig=fig, artists=artists, interval=8000/len(subset_samples))
-plt.show()
+if len(subset_samples) > 0:
+    fig, ax = plt.subplots()
+    artists = []
+    for i in range(len(subset_samples)):
+        samples = np.array(subset_samples[i]).T
+        container = ax.scatter(samples[0],samples[1], c="b")
+        txt = ax.text(0.05,0.05, str(i), ha="right", va="bottom", transform=fig.transFigure)
+        artists.append([container, txt])
+    ani = animation.ArtistAnimation(fig=fig, artists=artists, interval=8000/len(subset_samples))
+    plt.show()
 
 
 ############################################################

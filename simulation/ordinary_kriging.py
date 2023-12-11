@@ -28,7 +28,8 @@ class OrdinaryKriging:
 		self.mean_func = mean_func or ConstantMean()
 
 		if covar_kernel is None:
-			self.covar_kernel = ScaleKernel(RBFKernel())
+			self.covar_kernel = RBFKernel()
+			self.covar_kernel.lengthscale = 80
 
 		self.gp = None
 
@@ -76,6 +77,9 @@ class OrdinaryKriging:
 			optimizer.step()
 		self.gp.eval()
 		self.likelihood.eval()
+
+		ls = self.covar_kernel.lengthscale.item()
+		print(f"Lengthscale:{ls}")
 
 	# TODO: Could be improved with fast_pred_var?
 	def execute(self, inputs):

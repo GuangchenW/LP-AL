@@ -32,3 +32,11 @@ def G_2B(x):
     b1 = 3 + 0.1*(x1-x2)**2 - (x1+x2)/np.sqrt(2)
     b2 = 3 + 0.1*(x1-x2)**2 + (x1+x2)/np.sqrt(2)
     return np.min([b1, b2])
+
+def G_beam(x):
+    w=x[0]
+    b=x[1]
+    L=x[2]
+    E=26
+    I=b**4/12
+    return L/325-w*b*L**4/(8*E*I)
