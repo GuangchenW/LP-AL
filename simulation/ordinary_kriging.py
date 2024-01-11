@@ -29,7 +29,7 @@ class OrdinaryKriging:
 
 		if covar_kernel is None:
 			self.covar_kernel = RBFKernel()
-			self.covar_kernel.lengthscale = 80
+			#self.covar_kernel.lengthscale = 10
 
 		self.gp = None
 

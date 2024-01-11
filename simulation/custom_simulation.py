@@ -14,23 +14,24 @@ from subset_samplers import U_Sampler
 with open('../data.pkl', 'rb') as file:
     loaded_data = pickle.load(file)
 
-with open('./data.npy', 'rb') as file:
-    points = np.load(file)
+#with open('./data.npy', 'rb') as file:
+#    points = np.load(file)
 
-#points = np.array(loaded_data)
+points = np.array(loaded_data)
 
 N_MC = np.shape(points)[0]
+print(N_MC)
 
 # Seems to be MC smaples alright
 #plt.plot(point_x1, point_x2, 'bo')
 #plt.show()
 
 # Objective function
-G = G_beam
+G = G_4B
 
 # This is STEP2 "...a dozen points are enough"
 # Using points from MC samples instead
-N_INIT = 15 # Number of bootstrap points
+N_INIT = 12 # Number of bootstrap points
 
 # Query performance function and repack data
 DOE_input = points[:N_INIT]
@@ -40,10 +41,9 @@ for i in range(N_INIT):
 
 max_iter = 100
 kriging_model = OrdinaryKriging()
-U = Batch_Acquisition(kriging_model, utility_func="NH")
-sampler = U_Sampler(threshold=2)
+U = Batch_Acquisition(kriging_model, utility_func="NEFF")
+sampler = U_Sampler(threshold=4)
 subset_samples = []
-p_failures = []
 for i in range(max_iter):
 
     # STEP3 Compute Kriging model

@@ -1,3 +1,4 @@
+import math
 import numpy as np
 from scipy import stats
 
@@ -66,7 +67,8 @@ def NEFF(candidates, mean, variance, doe_input, doe_response):
 	out = []
 	for d,u in zip(dist, util):
 		out.append(u/slerp(d/max_d))
-	return np.array(out)
+	#return np.array(out)
+	return util
 
 def _EFF(candidate, mean, variance, doe_input, doe_response):
 	mu = mean
@@ -98,6 +100,9 @@ def _EFF(candidate, mean, variance, doe_input, doe_response):
 		dist = np.linalg.norm(candidate - doe_input[i])
 		if dist < min_d:
 			min_d = dist
+		z = 1/0.15*dist+abs(doe_response[i])
+		phi = 0.5*math.erfc(-z)
+		eff *= phi
 
 	return [min_d, eff]
 
