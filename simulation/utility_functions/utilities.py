@@ -40,8 +40,6 @@ def LF(candidate, mean, variance, doe_input, doe_response):
 	min_d = np.inf
 	for i in range(len(doe_input)):
 		dist = np.linalg.norm(candidate - doe_input[i])
-		#max_U = util if util > max_U else max_U
-		#max_d = dist if dist > max_d else max_d
 		if dist < min_d:
 			min_d = dist
 			min_U = ULP_helper(candidate, doe_response[i], mean, variance)

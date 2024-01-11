@@ -7,7 +7,8 @@ import math
 from ordinary_kriging import OrdinaryKriging
 
 from objective_functions import G_4B, G_2B, G_Ras, G_hat, G_beam
-from acquisition_functions import Single_Acquisition, Batch_Acquisition
+from acquisition_functions import ULP, NEFF, NH
+from evaluators import LP_Batch
 from subset_samplers import U_Sampler
 
 # Monte-Carlo samples
@@ -27,7 +28,7 @@ print(N_MC)
 #plt.show()
 
 # Objective function
-G = G_4B
+G = G_Ras
 
 # This is STEP2 "...a dozen points are enough"
 # Using points from MC samples instead
@@ -41,7 +42,9 @@ for i in range(N_INIT):
 
 max_iter = 100
 kriging_model = OrdinaryKriging()
-U = Batch_Acquisition(kriging_model, utility_func="NEFF")
+#U = Batch_Acquisition(kriging_model, utility_func="NEFF")
+acq_func = ULP()
+evaluator = LP_Batch(acq_func=acq_func)
 sampler = U_Sampler(threshold=4)
 subset_samples = []
 for i in range(max_iter):
@@ -78,7 +81,8 @@ for i in range(max_iter):
 
     # STEP5 Compute learning function on the population and identify best point
     # If using U(x), G(x)-U(x)sigma(x)=0, and we want to find argmin x
-    candidates = U.acquire(subset_pop, DOE_input, DOE_output, subset_mean, subset_var, 4)
+    #candidates = U.acquire(subset_pop, DOE_input, DOE_output, subset_mean, subset_var, 4)
+    candidates = evaluator.obtain_batch(subset_pop, subset_mean, subset_var, DOE_input, DOE_output, 4)
     print("iter (%i), batch size %i" % (i, len(candidates)))
 
     for candidate in candidates:
