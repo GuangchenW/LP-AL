@@ -15,6 +15,12 @@ def nonlinear_oscillator():
 	t1 = np.random.normal(1, 0.2)
 	return [c1,c2,m,r,t1,F1]
 
+def cantilever_beam():
+	w = np.random.normal(1000, 100)
+	L = np.random.normal(6, 0.9)
+	b = np.random.normal(250, 37.5)
+	return [w,L,b]
+
 def cantilever_tube():
 	t = np.random.normal(5, 0.1)
 	d = np.random.normal(42, 0.5)
@@ -29,8 +35,8 @@ def cantilever_tube():
 
 if __name__ == "__main__":
 
-	N_mcs = 10**6
-	generator = cantilever_tube
+	N_mcs = 10**5
+	generator = cantilever_beam
 	data = generate_data(generator, N_mcs)
 	filename = generator.__name__ + ".npy"
 

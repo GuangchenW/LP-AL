@@ -1,1 +1,1 @@
-from .G_functions import G_4B, G_2B, G_Ras, G_hat, G_beam, G_osc
+from .G_functions import G_4B, G_2B, G_Ras, G_hat, G_beam, G_osc, G_tube

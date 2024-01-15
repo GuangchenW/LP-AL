@@ -3,12 +3,13 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import pickle
 import math
+from gpytorch.kernels import RBFKernel
 
 from ordinary_kriging import OrdinaryKriging
 
-from objective_functions import G_4B, G_2B, G_Ras, G_hat, G_beam, G_osc
+from objective_functions import G_4B, G_2B, G_Ras, G_hat, G_beam, G_osc, G_tube
 from acquisition_functions import ULP, NEFF, NH, VAR
-from evaluators import LP_Batch
+from evaluators import LP_Batch, NLP_Batch
 from subset_samplers import U_Sampler
 
 # Monte-Carlo samples
@@ -17,10 +18,10 @@ with open('../data.pkl', 'rb') as file:
 
 points = np.array(loaded_data)
 
-with open('./oscillator.npy', 'rb') as file:
-	points = np.load(file)
+#with open('./cantilever_beam.npy', 'rb') as file:
+#	points = np.load(file)
 
-
+n_dim = points.shape[1]
 N_MC = np.shape(points)[0]
 print(N_MC)
 
@@ -29,7 +30,7 @@ print(N_MC)
 #plt.show()
 
 # Objective function
-G = G_osc
+G = G_Ras
 
 # This is STEP2 "...a dozen points are enough"
 # Using points from MC samples instead
@@ -41,12 +42,14 @@ DOE_output = np.zeros(N_INIT)
 for i in range(N_INIT):
 	DOE_output[i] = G(DOE_input[i])
 
+print("Initial observations: ", DOE_output)
+
 max_iter = 100
-kriging_model = OrdinaryKriging()
+kriging_model = OrdinaryKriging(covar_kernel = RBFKernel(ard_num_dims=n_dim))
 #U = Batch_Acquisition(kriging_model, utility_func="NEFF")
-acq_func = ULP()
-evaluator = LP_Batch(acq_func=acq_func)
-sampler = U_Sampler(threshold=2)
+acq_func = NH()
+evaluator = NLP_Batch(acq_func=acq_func)
+sampler = U_Sampler(threshold=4)
 subset_samples = []
 for i in range(max_iter):
 
@@ -85,10 +88,11 @@ for i in range(max_iter):
 	#candidates = U.acquire(subset_pop, DOE_input, DOE_output, subset_mean, subset_var, 4)
 	candidates = evaluator.obtain_batch(subset_pop, subset_mean, subset_var, DOE_input, DOE_output, 4)
 	print("iter (%i), batch size %i" % (i, len(candidates)))
+	print("--"*25)
 
 	for candidate in candidates:
 		print("Selected", candidate["next"])
-		print("Score : %.3f | Mean : %.3g | Var : %.3g" % (
+		print("Score : %.3f | Mean : %.4g | Var : %.4g" % (
 			candidate["utility"],
 			candidate["mean"],
 			candidate["variance"]))

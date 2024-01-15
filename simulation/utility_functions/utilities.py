@@ -9,7 +9,7 @@ def U(candidates, mean, variance, doe_input, doe_response):
 			)))
 
 def _U(mean, variance):
-	return 1000 if variance < 0.1 else abs(mean)/np.sqrt(variance)
+	return 9999 if variance < 0.05 else abs(mean)/np.sqrt(variance)
 
 
 def ULP(candidates, mean, variance, doe_input, doe_response):

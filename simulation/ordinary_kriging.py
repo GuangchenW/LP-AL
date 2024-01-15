@@ -30,6 +30,8 @@ class OrdinaryKriging:
 		if covar_kernel is None:
 			self.covar_kernel = RBFKernel()
 			#self.covar_kernel.lengthscale = 10
+		else:
+			self.covar_kernel = covar_kernel
 
 		self.gp = None
 
@@ -53,7 +55,7 @@ class OrdinaryKriging:
 
 		mll = ExactMarginalLogLikelihood(self.gp.likelihood, self.gp)
 
-		max_iter = 300
+		max_iter = 2000
 		epsilon = 0.001
 		prev_loss = 100
 		for i in range(max_iter):
@@ -78,7 +80,7 @@ class OrdinaryKriging:
 		self.gp.eval()
 		self.likelihood.eval()
 
-		ls = self.covar_kernel.lengthscale.item()
+		ls = self.covar_kernel.lengthscale
 		print(f"Lengthscale:{ls}")
 
 	# TODO: Could be improved with fast_pred_var?
