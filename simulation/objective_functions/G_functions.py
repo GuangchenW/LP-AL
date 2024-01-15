@@ -40,3 +40,9 @@ def G_beam(x):
     E=26
     I=b**4/12
     return L/325-w*b*L**4/(8*E*I)
+
+# ESC: an efficient error-based stopping criterion 3 
+def G_osc(x):
+    w_0 = np.sqrt((x[0]+x[1])/x[2])
+    val = 2*x[5]*np.sin(w_0*x[4]*0.5)/(x[2]*w_0**2)
+    return 3*x[3]-abs(val)
