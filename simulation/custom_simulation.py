@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import pickle
 import math
-from gpytorch.kernels import RBFKernel
+from gpytorch.kernels import ScaleKernel, RBFKernel
 
 from ordinary_kriging import OrdinaryKriging
 
@@ -18,7 +18,7 @@ with open('../data.pkl', 'rb') as file:
 
 points = np.array(loaded_data)
 
-#with open('./cantilever_beam.npy', 'rb') as file:
+#with open('./nonlinear_oscillator.npy', 'rb') as file:
 #	points = np.load(file)
 
 n_dim = points.shape[1]
@@ -45,10 +45,10 @@ for i in range(N_INIT):
 print("Initial observations: ", DOE_output)
 
 max_iter = 100
-kriging_model = OrdinaryKriging(covar_kernel = RBFKernel(ard_num_dims=n_dim))
-#U = Batch_Acquisition(kriging_model, utility_func="NEFF")
+batch_size = 8
+kriging_model = OrdinaryKriging(covar_kernel = ScaleKernel(RBFKernel(ard_num_dims=n_dim)))
 acq_func = NH()
-evaluator = NLP_Batch(acq_func=acq_func)
+evaluator = LP_Batch(acq_func=acq_func)
 sampler = U_Sampler(threshold=4)
 subset_samples = []
 for i in range(max_iter):
@@ -86,7 +86,7 @@ for i in range(max_iter):
 	# STEP5 Compute learning function on the population and identify best point
 	# If using U(x), G(x)-U(x)sigma(x)=0, and we want to find argmin x
 	#candidates = U.acquire(subset_pop, DOE_input, DOE_output, subset_mean, subset_var, 4)
-	candidates = evaluator.obtain_batch(subset_pop, subset_mean, subset_var, DOE_input, DOE_output, 4)
+	candidates = evaluator.obtain_batch(subset_pop, subset_mean, subset_var, DOE_input, DOE_output, batch_size)
 	print("iter (%i), batch size %i" % (i, len(candidates)))
 	print("--"*25)
 
@@ -119,6 +119,8 @@ print(f"True probability of failure: {N_true_f/N_MC:.3g}")
 print(f"Estimated probability of failure: {P_f:.3g}")
 print(f"COV of probability of failure: {cov_fail:.3g}")
 
+#exit()
+
 if not np.shape(DOE_input)[1] == 2:
 	exit()
 ############################################################
@@ -128,9 +130,13 @@ if len(subset_samples) > 0:
 	artists = []
 	for i in range(len(subset_samples)):
 		samples = np.array(subset_samples[i]).T
-		container = ax.scatter(samples[0],samples[1], c="b")
+		sample_plot = ax.scatter(samples[0],samples[1], c="blue", s=2)
+		doe_range_l = N_INIT+i*batch_size
+		doe_range_u = N_INIT+(i+1)*batch_size
+		selection = DOE_input[doe_range_l:doe_range_u].T
+		selection_plot = ax.scatter(selection[0], selection[1],c="red",s=4)
 		txt = ax.text(0.05,0.05, str(i), ha="right", va="bottom", transform=fig.transFigure)
-		artists.append([container, txt])
+		artists.append([sample_plot, selection_plot, txt])
 	ani = animation.ArtistAnimation(fig=fig, artists=artists, interval=8000/len(subset_samples))
 	plt.show()
 

@@ -36,7 +36,7 @@ def cantilever_tube():
 if __name__ == "__main__":
 
 	N_mcs = 10**5
-	generator = cantilever_beam
+	generator = nonlinear_oscillator
 	data = generate_data(generator, N_mcs)
 	filename = generator.__name__ + ".npy"
 

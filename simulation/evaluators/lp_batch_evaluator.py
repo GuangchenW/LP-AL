@@ -54,9 +54,10 @@ class LP_Batch(BaseEvaluator):
 		return hammered_util
 
 	def log_hammer_func(self, candidate, center, offset):
-		#dist = np.linalg.norm(center-candidate)
-		dist = np.dot(center, candidate)/(np.linalg.norm(center)*np.linalg.norm(candidate))
-		z = 1/0.15*-dist-min(0.5,abs(offset))
+		dist = np.linalg.norm(center-candidate)
+		#dist = np.dot(center, candidate)/(np.linalg.norm(center)*np.linalg.norm(candidate))
+		z = 1/0.15*dist-abs(offset)
 		phi = 0.5*math.erfc(-z)
+		phi = max(1e-24, phi)
 		return np.log(phi)
 

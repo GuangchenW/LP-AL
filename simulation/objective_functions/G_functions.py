@@ -40,7 +40,7 @@ def G_beam(x):
     b=x[2]
     E=26
     I=(b**4)/12
-    return L/325-w*b*L**4/(8*E*I)
+    return (L/325-w*b*L**4/(8*E*I))*100
 
 # ESC: an efficient error-based stopping criterion 3 
 def G_osc(x):
@@ -63,4 +63,4 @@ def G_tube(x):
     sigma_x = (P+F1*np.sin(theta1)+F2*np.sin(theta2))/A + M*c/I
     sigma_max = np.sqrt(sigma_x**2+3*tau**2)
 
-    return S_y - sigma_max
+    return (S_y - sigma_max)
