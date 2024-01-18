@@ -5,15 +5,14 @@ import pickle
 import math
 from gpytorch.kernels import ScaleKernel, RBFKernel
 
-from ordinary_kriging import OrdinaryKriging
-
+from models import OrdinaryKriging
 from objective_functions import G_4B, G_2B, G_Ras, G_hat, G_beam, G_osc, G_tube
 from acquisition_functions import ULP, NEFF, NH, VAR
 from evaluators import LP_Batch, NLP_Batch
 from subset_samplers import U_Sampler
 
 # Monte-Carlo samples
-with open('../data.pkl', 'rb') as file:
+with open('./tests/data/data.pkl', 'rb') as file:
 	loaded_data = pickle.load(file)
 
 points = np.array(loaded_data)
@@ -47,7 +46,7 @@ print("Initial observations: ", DOE_output)
 max_iter = 100
 batch_size = 8
 kriging_model = OrdinaryKriging(covar_kernel = ScaleKernel(RBFKernel(ard_num_dims=n_dim)))
-acq_func = NH()
+acq_func = VAR()
 evaluator = LP_Batch(acq_func=acq_func)
 sampler = U_Sampler(threshold=4)
 subset_samples = []
