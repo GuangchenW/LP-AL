@@ -35,21 +35,6 @@ class MCP_Manager:
 		directory = self.get_data_directory(name)
 		return os.path.exists(directory)
 
-	def nonlinear_oscillator(self):
-		m = np.random.normal(1, 0.05)
-		c1 = np.random.normal(1, 0.1)
-		c2 = np.random.normal(0.1, 0.01)
-		r = np.random.normal(0.5, 0.05)
-		F1 = np.random.normal(1, 0.2)
-		t1 = np.random.normal(1, 0.2)
-		return [c1,c2,m,r,t1,F1]
-
-	def cantilever_beam():
-		w = np.random.normal(1000, 100)
-		L = np.random.normal(6, 0.9)
-		b = np.random.normal(250, 37.5)
-		return [w,L,b]
-
 	def cantilever_tube():
 		t = np.random.normal(5, 0.1)
 		d = np.random.normal(42, 0.5)

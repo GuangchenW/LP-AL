@@ -17,11 +17,11 @@ class NH(BaseAcquisitionFunction):
 	):
 		acq = np.array([self._H(pnt, mu, var) for pnt, mu, var in zip(subset_points, mean, variance)])
 		
-		# Down-shift the acquisiton values so max(acq(x))<=0.
+		# Up-shift the acquisiton values so min(acq(x))>=0.
 		# This is done so it can be scaled with penalties for batching.
-		max_val = np.min(acq)
-		if max_val < 0:
-			acq = acq - max_val
+		min_val = np.min(acq)
+		if min_val < 0:
+			acq = acq - min_val
 
 		return acq
 
