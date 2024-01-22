@@ -4,7 +4,7 @@ import numpy as np
 
 class G_Ras(BaseObjectiveFunction):
 	def __init__(self, d=5):
-		super().__init__(name="Ras", dim=2)
+		super().__init__(name="modified_rastrigin", dim=2)
 		self.d = d
 
 	def evaluate(self, x):

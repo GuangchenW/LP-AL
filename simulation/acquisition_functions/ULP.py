@@ -18,9 +18,9 @@ class ULP(BaseAcquisitionFunction):
 		
 		# Down-shift the acquisiton values so max(acq(x))<=0.
 		# This is done so it can be scaled with penalties for batching.
-		max_val = np.max(acq)
-		if max_val > 0:
-			acq = acq - max_val - 1e-6
+		max_val = np.min(acq)
+		if max_val < 0:
+			acq = acq - max_val
 
 		return acq
 
@@ -31,4 +31,4 @@ class ULP(BaseAcquisitionFunction):
 		
 		adjusted_var = np.sqrt((mean-doe_response[closest_id])**2+variance)
 		adjusted_var = max(1e-4, adjusted_var)
-		return abs(mean)/adjusted_var
+		return -abs(mean)/adjusted_var

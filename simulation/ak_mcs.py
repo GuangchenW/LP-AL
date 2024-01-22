@@ -4,6 +4,7 @@ import matplotlib.animation as animation
 import math
 from gpytorch.kernels import ScaleKernel, RBFKernel
 
+from .logger import Logger
 from models import OrdinaryKriging
 from acquisition_functions import ULP
 from evaluators import LP_Batch
@@ -33,12 +34,15 @@ class AKMCS:
 			self.kriging_sample = self.input_space
 		else:
 			sample_size = min(self.input_space.shape[0], sample_size)
-			self.kriging_sample = input_space[:sample_size] if not random else np.random.choice(input_space, sample_size, replace=False)
+			self.kriging_sample = self.input_space[:sample_size] if not random else np.random.Generator.choice(self.input_space, sample_size, replace=False)
 		self.num_init = num_init
-		self.doe_input = self.kriging_sample[:num_init] if not random else np.random.choice(self.kriging_sample, num_init, replace=False)
+		self.doe_input = self.kriging_sample[:num_init] if not random else np.random.Generator.choice(self.kriging_sample, num_init, replace=False)
 		self.doe_response = np.array([self.obj_func.evaluate(x) for x in self.doe_input])
 		self.model = OrdinaryKriging(covar_kernel = ScaleKernel(RBFKernel(ard_num_dims=self.obj_func.dim)))
 		self.sample_history = []
+
+		log_file_name = "%s_init%d_batch%d.txt" % (obj_func.name, num_init, self.batch_size)
+		self.logger = Logger(log_file_name)
 
 	def kriging_estimate(self):
 		for i in range(self.max_iter):
@@ -64,7 +68,7 @@ class AKMCS:
 		S_s = np.sum(subset_mean > 0) # Number of likely false positives
 		epsilon_max = max(abs(N_f/(N_f-S_f)-1), abs(N_f/(N_f+S_s)-1))
 		epsilon_thr = 0.05
-		print("epsilon_max : ", epsilon_max)
+		self.logger.log("Epsilon max : %.6g" % epsilon_max)
 		# STEP6 Evaluate stopping condition
 		if (epsilon_max < epsilon_thr):
 			return False
@@ -77,7 +81,7 @@ class AKMCS:
 			return False
 
 		# STEP5 Compute learning function on the population and identify best point
-		candidates = self.evaluator.obtain_batch(
+		batch = self.evaluator.obtain_batch(
 			subset_pop, 
 			subset_mean, 
 			subset_var, 
@@ -85,18 +89,12 @@ class AKMCS:
 			self.doe_response, 
 			self.batch_size)
 
-		print("Iteration [%i] | Batch size [%i]" % (iter_count, self.batch_size))
-		print("--"*25)
-		for candidate in candidates:
-			print("Selected", candidate["next"])
-			print("Score : %.3f | Mean : %.4g | Var : %.4g" % (
-				candidate["utility"],
-				candidate["mean"],
-				candidate["variance"]))
-			# STEP7 Update DOE model
+		# STEP6 Update doe with batch
+		for candidate in batch:
 			self.doe_input = np.append(self.doe_input, [candidate["next"]], axis=0)
 			self.doe_response = np.append(self.doe_response, self.obj_func.evaluate(candidate["next"]))
-		print("--"*25)
+
+		self.logger.log_batch(iter_count, batch)
 
 		return True
 
@@ -114,9 +112,9 @@ class AKMCS:
 			if self.obj_func.evaluate(self.input_space[i]) < 0:
 				N_true_f += 1
 
-		print(f"True probability of failure: {N_true_f/N_MC:.3g}")
-		print(f"Estimated probability of failure: {P_f:.3g}")
-		print(f"COV of probability of failure: {cov_fail:.3g}")
+		self.logger.log(f"True probability of failure: {N_true_f/N_MC:.3g}")
+		self.logger.log(f"Estimated probability of failure: {P_f:.3g}")
+		self.logger.log(f"COV of probability of failure: {cov_fail:.3g}")
 
 		#exit()
 

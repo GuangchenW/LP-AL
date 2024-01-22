@@ -19,8 +19,8 @@ class NH(BaseAcquisitionFunction):
 		
 		# Down-shift the acquisiton values so max(acq(x))<=0.
 		# This is done so it can be scaled with penalties for batching.
-		max_val = np.max(acq)
-		if max_val > 0:
+		max_val = np.min(acq)
+		if max_val < 0:
 			acq = acq - max_val
 
 		return acq
@@ -42,4 +42,4 @@ class NH(BaseAcquisitionFunction):
 		term2 = (std-0.5*mu)*stats.norm.pdf(upper)+(std+0.5*mu)*stats.norm.pdf(lower)
 		h = abs(term1-term2)
 
-		return -h
+		return h
