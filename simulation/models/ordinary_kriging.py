@@ -16,36 +16,43 @@ class _ExactGP(ExactGP):
 		super(_ExactGP, self).__init__(train_x, train_y, likelihood)
 		self.mean_module = mean_func
 		self.covar_kernel = covar_kernel
+		#self.normalizer = torch.nn.BatchNorm1d(9, affine=False)
 
 	def forward(self, x):
+		#x = self.normalizer(x)
 		mean_x = self.mean_module(x)
 		covar_x = self.covar_kernel(x)
 		return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
 
 class OrdinaryKriging:
-	def __init__(self, likelihood=None, mean_func=None, covar_kernel=None):
+	def __init__(self, n_dim, mean_func=None, covar_kernel=None, init_lengthscale=None):
 
 		self.mean_func = mean_func or ConstantMean()
 
 		if covar_kernel is None:
-			self.covar_kernel = RBFKernel()
-			#self.covar_kernel.lengthscale = 10
+			self.base_covar_kernel = RBFKernel(ard_num_dims=n_dim)
+			if not init_lengthscale == None:
+				self.base_covar_kernel.lengthscale = init_lengthscale
+			self.covar_kernel = ScaleKernel(self.base_covar_kernel)
 		else:
 			self.covar_kernel = covar_kernel
 
 		self.gp = None
 
 	def train(self, inputs, labels, device="cpu"):
-		inputs = torch.tensor(inputs)
-		labels = torch.tensor(labels)
+		inputs = torch.tensor(inputs, dtype=torch.double)
+		self.train_mean = inputs.mean(dim=0)
+		self.train_std = inputs.std(dim=0)
+		normalized_inputs = (inputs-self.train_mean)/self.train_std
+		labels = torch.tensor(labels, dtype=torch.double)
 
 		if self.gp == None:
 			self.noise = torch.ones(np.shape(inputs)[0])*0.001
 			self.likelihood = FixedNoiseGaussianLikelihood(noise=self.noise)
-			self.gp = _ExactGP(inputs, labels, self.likelihood, self.mean_func, self.covar_kernel)
+			self.gp = _ExactGP(normalized_inputs, labels, self.likelihood, self.mean_func, self.covar_kernel)
 			self.gp.to(device)
 		else:
-			self.gp.set_train_data(inputs, labels, False)
+			self.gp.set_train_data(normalized_inputs, labels, False)
 			self.noise = torch.ones(np.shape(inputs)[0])*0.001
 			self.gp.likelihood.noise = self.noise
 		self.gp.train()
@@ -60,41 +67,36 @@ class OrdinaryKriging:
 		prev_loss = 100
 		for i in range(max_iter):
 			optimizer.zero_grad()
-			output = self.gp(inputs)
+			output = self.gp(normalized_inputs)
 			loss = -mll(output, labels)
 			loss.backward()
-			"""
-			print('Iter %d/%d - Loss: %.3f		lengthscale: %.3f	noise: %.3f' % (
-				i+1, max_iter, loss.item(),
-				self.gp.covar_kernel.base_kernel.lengthscale.item(),
-				self.gp.likelihood.noise.item()
-				))
-			"""
+			optimizer.step()
+
 			if abs(prev_loss-loss.item()) < epsilon:
 				print("Trained", i, "steps")
 				break
-			else:
-				prev_loss = loss.item()
+			
+			prev_loss = loss.item()
 
-			optimizer.step()
 		self.gp.eval()
 		self.likelihood.eval()
 
-		ls = self.covar_kernel.lengthscale
+		ls = self.base_covar_kernel.lengthscale
 		print(f"Lengthscale:{ls}")
 
 	# TODO: Could be improved with fast_pred_var?
 	def execute(self, inputs):
 		with torch.no_grad():
-			inputs = torch.tensor(inputs)
+			inputs = torch.tensor(inputs, dtype=torch.double)
+			inputs = (inputs-self.train_mean)/self.train_std
 			f_preds = self.gp(inputs)
 			return (f_preds.mean.numpy(), f_preds.variance.numpy())
 
 	def fantasize(self, inputs, targets, tests):
 		noises = torch.ones(np.shape(inputs)[0])*0.001
-		inputs = torch.tensor(inputs)
-		targets = torch.tensor(targets)
-		tests = torch.tensor(tests)
+		inputs = torch.tensor(inputs, dtype=torch.double)
+		targets = torch.tensor(targets, dtype=torch.double)
+		tests = torch.tensor(tests, dtype=torch.double)
 		model = self.gp.get_fantasy_model(inputs, targets, noise=noises)
 		with torch.no_grad():
 			f_preds = model(tests)

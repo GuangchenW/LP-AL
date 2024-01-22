@@ -3,3 +3,4 @@ from .G_4B import G_4B
 from .G_Ras import G_Ras
 from .G_osc import G_oscillator
 from .G_beam import G_beam
+from .G_tube import G_tube

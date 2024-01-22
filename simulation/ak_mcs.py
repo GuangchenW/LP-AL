@@ -19,7 +19,7 @@ class AKMCS:
 		self.max_iter = max_iter
 		self.batch_size = batch_size
 
-	def initialize_input(self, obj_func, sample_size=None, num_init=12, random=False):
+	def initialize_input(self, obj_func, sample_size=None, num_init=12, lengthscale=None, random=False):
 		"""
 		Reset and initialize the objective function and input data. 
 		:param input_space: The monte-carlo population.
@@ -38,10 +38,11 @@ class AKMCS:
 		self.num_init = num_init
 		self.doe_input = self.kriging_sample[:num_init] if not random else np.random.Generator.choice(self.kriging_sample, num_init, replace=False)
 		self.doe_response = np.array([self.obj_func.evaluate(x) for x in self.doe_input])
-		self.model = OrdinaryKriging(covar_kernel = ScaleKernel(RBFKernel(ard_num_dims=self.obj_func.dim)))
+		print(self.doe_response)
+		self.model = OrdinaryKriging(n_dim=self.obj_func.dim, init_lengthscale=lengthscale)
 		self.sample_history = []
 
-		log_file_name = "%s_init%d_batch%d.txt" % (obj_func.name, num_init, self.batch_size)
+		log_file_name = "%s_%s_init%d_batch%d.txt" % (obj_func.name, self.acq_func.name, num_init, self.batch_size)
 		self.logger = Logger(log_file_name)
 
 	def kriging_estimate(self):
@@ -66,7 +67,7 @@ class AKMCS:
 		N_f = np.sum(mean < 0) # Number of failures by Kriging model
 		S_f = np.sum(subset_mean < 0) # Number of likely false negatives 
 		S_s = np.sum(subset_mean > 0) # Number of likely false positives
-		epsilon_max = max(abs(N_f/(N_f-S_f)-1), abs(N_f/(N_f+S_s)-1))
+		epsilon_max = math.inf if N_f == 0 else max(abs(N_f/(N_f-S_f)-1), abs(N_f/(N_f+S_s)-1))
 		epsilon_thr = 0.05
 		self.logger.log("Epsilon max : %.6g" % epsilon_max)
 		# STEP6 Evaluate stopping condition

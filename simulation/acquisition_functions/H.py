@@ -3,7 +3,7 @@ import numpy as np
 from scipy import stats
 from .acquisition_function import BaseAcquisitionFunction
 
-class NH(BaseAcquisitionFunction):
+class H(BaseAcquisitionFunction):
 	def __init__(self, device="cpu", logger=None):
 		super().__init__(name="NH", device=device, logger=logger)
 

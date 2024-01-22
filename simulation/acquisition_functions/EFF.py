@@ -3,7 +3,7 @@ import numpy as np
 from scipy import stats
 from .acquisition_function import BaseAcquisitionFunction
 
-class NEFF(BaseAcquisitionFunction):
+class EFF(BaseAcquisitionFunction):
 	def __init__(self, device="cpu", logger=None):
 		super().__init__(name="NEFF", device=device, logger=logger)
 

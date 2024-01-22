@@ -21,7 +21,6 @@ class U(BaseAcquisitionFunction):
 		min_val = np.min(acq)
 		if min_val < 0:
 			acq = acq - min_val
-
 		return acq
 
 	def _U(self, mean, variance):

@@ -1,3 +1,4 @@
+import sys
 import math
 import numpy as np
 
@@ -23,7 +24,6 @@ class LP_Batch(BaseEvaluator):
 
 		# HACK
 		utilities = np.log(utilities)
-
 		# Resample?
 		for i in range(min(n_points, len(subset_points))):
 			min_id = np.argmax(utilities)
@@ -51,13 +51,13 @@ class LP_Batch(BaseEvaluator):
 			hammer = self.log_hammer_func(candidates[i], batch["next"], batch["mean"])
 			util = utilities[i] + hammer
 			hammered_util.append(util)
-		return hammered_util
+		return np.array(hammered_util)
 
 	def log_hammer_func(self, candidate, center, offset):
 		dist = np.linalg.norm(center-candidate)
 		#dist = np.dot(center, candidate)/(np.linalg.norm(center)*np.linalg.norm(candidate))
 		z = 1/0.15*dist-abs(offset)
 		phi = 0.5*math.erfc(-z)
-		phi = max(1e-24, phi)
+		phi = max(sys.float_info.min, phi) # Prevent cases where erfc evaluates to 0
 		return np.log(phi)
 
