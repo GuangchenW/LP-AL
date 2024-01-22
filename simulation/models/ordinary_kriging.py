@@ -85,12 +85,25 @@ class OrdinaryKriging:
 		print(f"Lengthscale:{ls}")
 
 	# TODO: Could be improved with fast_pred_var?
-	def execute(self, inputs):
-		with torch.no_grad():
-			inputs = torch.tensor(inputs, dtype=torch.double)
-			inputs = (inputs-self.train_mean)/self.train_std
-			f_preds = self.gp(inputs)
-			return (f_preds.mean.numpy(), f_preds.variance.numpy())
+	def execute(self, inputs, with_grad=False):
+		inputs = torch.tensor(inputs, dtype=torch.double)
+		inputs = (inputs-self.train_mean)/self.train_std
+		
+		if with_grad:
+			inputs.requires_grad = True
+
+			pred = self.likelihood(self.gp(inputs))
+			mean_pred = pred.mean.sum()
+
+			mean_pred.backward(retain_graph=True)
+			grad_mean = inputs.grad
+
+
+			return (pred.mean.detach().numpy(), pred.variance.detach().numpy(), torch.max(grad_mean).item())
+		else:
+			with torch.no_grad():
+				f_preds = self.gp(inputs)
+				return (f_preds.mean.numpy(), f_preds.variance.numpy())
 
 	def fantasize(self, inputs, targets, tests):
 		noises = torch.ones(np.shape(inputs)[0])*0.001

@@ -7,6 +7,10 @@ from .base_evaluator import BaseEvaluator
 class LP_Batch(BaseEvaluator):
 	def __init__(self, acq_func, logger=None):
 		super().__init__(acq_func=acq_func, logger=logger)
+		self.L = float("nan")
+
+	def set_L(self, L):
+		self.L = L
 
 	def obtain_batch(
 		self,
@@ -17,8 +21,6 @@ class LP_Batch(BaseEvaluator):
 		doe_response,
 		n_points
 	):
-		print("Subset size: %d" % len(subset_points))
-
 		batch = []
 		utilities = self.acq_func.acquire(subset_points, mean, variance, doe_input, doe_response)
 
@@ -56,7 +58,7 @@ class LP_Batch(BaseEvaluator):
 	def log_hammer_func(self, candidate, center, offset):
 		dist = np.linalg.norm(center-candidate)
 		#dist = np.dot(center, candidate)/(np.linalg.norm(center)*np.linalg.norm(candidate))
-		z = 1/0.15*dist-abs(offset)
+		z = self.L*dist-abs(offset)
 		phi = 0.5*math.erfc(-z)
 		phi = max(sys.float_info.min, phi) # Prevent cases where erfc evaluates to 0
 		return np.log(phi)

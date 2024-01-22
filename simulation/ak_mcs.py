@@ -54,7 +54,7 @@ class AKMCS:
 		# STEP3 Compute Kriging model
 		self.model.train(self.doe_input, self.doe_response)
 		# Acquire all estimations
-		mean, variance = self.model.execute(self.kriging_sample)
+		mean, variance, max_grad = self.model.execute(self.kriging_sample, with_grad=True)
 
 		# Sample critical region
 		subset_pop, subset_mean, subset_var = self.sampler.sample(
@@ -69,7 +69,9 @@ class AKMCS:
 		S_s = np.sum(subset_mean > 0) # Number of likely false positives
 		epsilon_max = math.inf if N_f == 0 else max(abs(N_f/(N_f-S_f)-1), abs(N_f/(N_f+S_s)-1))
 		epsilon_thr = 0.05
+		self.logger.log("Subset size: %d" % len(subset_pop))
 		self.logger.log("Epsilon max : %.6g" % epsilon_max)
+		self.logger.log("Max Expected Gradient: %.4g" % max_grad)
 		# STEP6 Evaluate stopping condition
 		if (epsilon_max < epsilon_thr):
 			return False
@@ -82,6 +84,7 @@ class AKMCS:
 			return False
 
 		# STEP5 Compute learning function on the population and identify best point
+		self.evaluator.set_L(1/0.15)
 		batch = self.evaluator.obtain_batch(
 			subset_pop, 
 			subset_mean, 
