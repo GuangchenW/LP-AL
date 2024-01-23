@@ -10,7 +10,7 @@ class LP_Batch(BaseEvaluator):
 		self.L = float("nan")
 
 	def set_L(self, L):
-		self.L = L
+		self.L = min(10,L)
 
 	def obtain_batch(
 		self,

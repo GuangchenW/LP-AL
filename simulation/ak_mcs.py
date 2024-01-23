@@ -43,7 +43,7 @@ class AKMCS:
 		self.sample_history = []
 
 		log_file_name = "%s_%s_init%d_batch%d.txt" % (obj_func.name, self.acq_func.name, num_init, self.batch_size)
-		self.logger = Logger(log_file_name)
+		self.logger = Logger(log_file_name, silence=True)
 
 	def kriging_estimate(self):
 		for i in range(self.max_iter):
@@ -84,7 +84,7 @@ class AKMCS:
 			return False
 
 		# STEP5 Compute learning function on the population and identify best point
-		self.evaluator.set_L(1/0.15)
+		self.evaluator.set_L(max_grad)
 		batch = self.evaluator.obtain_batch(
 			subset_pop, 
 			subset_mean, 
@@ -119,11 +119,11 @@ class AKMCS:
 		self.logger.log(f"True probability of failure: {N_true_f/N_MC:.3g}")
 		self.logger.log(f"Estimated probability of failure: {P_f:.3g}")
 		self.logger.log(f"COV of probability of failure: {cov_fail:.3g}")
-
-		#exit()
+		self.logger.clean_up()
+		return
 
 		if not self.doe_input.shape[1] == 2:
-			exit()
+			return
 		############################################################
 		# subset sample evolution
 		if len(self.sample_history) > 0:

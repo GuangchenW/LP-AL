@@ -29,5 +29,5 @@ class Logger:
 
 	def clean_up(self):
 		if self.out_target is not sys.stdout:
-			out_target.close()
+			self.out_target.close()
 

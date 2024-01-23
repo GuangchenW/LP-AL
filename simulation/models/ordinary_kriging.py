@@ -99,7 +99,7 @@ class OrdinaryKriging:
 			grad_mean = inputs.grad
 
 
-			return (pred.mean.detach().numpy(), pred.variance.detach().numpy(), torch.max(grad_mean).item())
+			return (pred.mean.detach().numpy(), pred.variance.detach().numpy(), torch.max(torch.abs(grad_mean)).item())
 		else:
 			with torch.no_grad():
 				f_preds = self.gp(inputs)
