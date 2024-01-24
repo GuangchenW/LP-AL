@@ -5,6 +5,7 @@ import math
 from gpytorch.kernels import ScaleKernel, RBFKernel
 
 from .logger import Logger
+from .utils import ESC
 from models import OrdinaryKriging
 from acquisition_functions import ULP
 from evaluators import LP_Batch
@@ -16,6 +17,7 @@ class AKMCS:
 		self.acq_func = acq_func if not acq_func == None else ULP()
 		self.sampler = sampler if not sampler == None else U_Sampler(threshold=4)
 		self.evaluator = evaluator if not evaluator == None else LP_Batch(acq_func=self.acq_func)
+		self.stopper = ESC(epsilon_thr=0.01)
 		self.max_iter = max_iter
 		self.batch_size = batch_size
 
@@ -64,16 +66,12 @@ class AKMCS:
 			mean,
 			variance)
 		
-		N_f = np.sum(mean < 0) # Number of failures by Kriging model
-		S_f = np.sum(subset_mean < 0) # Number of likely false negatives 
-		S_s = np.sum(subset_mean > 0) # Number of likely false positives
-		epsilon_max = math.inf if N_f == 0 else max(abs(N_f/(N_f-S_f)-1), abs(N_f/(N_f+S_s)-1))
-		epsilon_thr = 0.05
+		epsilon_max, should_stop = self.stopper(mean, variance)
 		self.logger.log("Subset size: %d" % len(subset_pop))
 		self.logger.log("Epsilon max : %.6g" % epsilon_max)
 		self.logger.log("Max Expected Gradient: %.4g" % max_grad)
 		# STEP6 Evaluate stopping condition
-		if (epsilon_max < epsilon_thr):
+		if should_stop:
 			return False
 
 		# log critical region for visualization
@@ -120,7 +118,7 @@ class AKMCS:
 		self.logger.log(f"Estimated probability of failure: {P_f:.3g}")
 		self.logger.log(f"COV of probability of failure: {cov_fail:.3g}")
 		self.logger.clean_up()
-		return
+		#return
 
 		if not self.doe_input.shape[1] == 2:
 			return
