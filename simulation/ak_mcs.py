@@ -17,7 +17,7 @@ class AKMCS:
 		self.acq_func = acq_func if not acq_func == None else ULP()
 		self.sampler = sampler if not sampler == None else U_Sampler(threshold=4)
 		self.evaluator = evaluator if not evaluator == None else LP_Batch(acq_func=self.acq_func)
-		self.stopper = ESC(epsilon_thr=0.05)
+		self.stopper = ESC(epsilon_thr=0.01)
 		self.max_iter = max_iter
 		self.batch_size = batch_size
 
@@ -118,7 +118,7 @@ class AKMCS:
 		self.logger.log(f"Estimated probability of failure: {P_f:.3g}")
 		self.logger.log(f"COV of probability of failure: {cov_fail:.3g}")
 		self.logger.clean_up()
-		return
+		#return
 
 		if not self.doe_input.shape[1] == 2:
 			return
