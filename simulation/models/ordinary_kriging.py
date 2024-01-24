@@ -47,13 +47,13 @@ class OrdinaryKriging:
 		labels = torch.tensor(labels, dtype=torch.double)
 
 		if self.gp == None:
-			self.noise = torch.ones(np.shape(inputs)[0])*0.001
+			self.noise = torch.ones(normalized_inputs.shape[0])*0.001
 			self.likelihood = FixedNoiseGaussianLikelihood(noise=self.noise)
 			self.gp = _ExactGP(normalized_inputs, labels, self.likelihood, self.mean_func, self.covar_kernel)
 			self.gp.to(device)
 		else:
 			self.gp.set_train_data(normalized_inputs, labels, False)
-			self.noise = torch.ones(np.shape(inputs)[0])*0.001
+			self.noise = torch.ones(normalized_inputs.shape[0])*0.001
 			self.gp.likelihood.noise = self.noise
 		self.gp.train()
 		self.gp.likelihood.train()
@@ -62,7 +62,7 @@ class OrdinaryKriging:
 
 		mll = ExactMarginalLogLikelihood(self.gp.likelihood, self.gp)
 
-		max_iter = 2000
+		max_iter = 999
 		epsilon = 0.001
 		prev_loss = 100
 		for i in range(max_iter):
@@ -92,16 +92,15 @@ class OrdinaryKriging:
 		if with_grad:
 			inputs.requires_grad = True
 
-			pred = self.likelihood(self.gp(inputs))
+			pred = self.likelihood(self.gp(inputs), noise=torch.zeros(inputs.shape[0]))
 			mean_pred = pred.mean.sum()
 
 			mean_pred.backward(retain_graph=True)
 			grad_mean = inputs.grad
 
-
 			return (pred.mean.detach().numpy(), pred.variance.detach().numpy(), torch.max(torch.abs(grad_mean)).item())
 		else:
-			with torch.no_grad():
+			with torch.no_grad(), gpytorch.settings.fast_pred_var():
 				f_preds = self.gp(inputs)
 				return (f_preds.mean.numpy(), f_preds.variance.numpy())
 
