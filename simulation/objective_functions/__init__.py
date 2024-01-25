@@ -7,3 +7,4 @@ from .G_axle import G_axle
 from .G_tube import G_tube
 from .G_high_dim import G_High_Dim
 from .G_roof import G_Roof
+from .G_simple import G_Simple

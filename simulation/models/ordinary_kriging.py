@@ -84,9 +84,9 @@ class OrdinaryKriging:
 		ls = self.base_covar_kernel.lengthscale
 		print(f"Lengthscale:{ls}")
 
-	# TODO: Could be improved with fast_pred_var?
 	def execute(self, inputs, with_grad=False):
 		inputs = torch.tensor(inputs, dtype=torch.double)
+		#print(inputs)
 		inputs = (inputs-self.train_mean)/self.train_std
 		
 		if with_grad:
@@ -96,9 +96,10 @@ class OrdinaryKriging:
 			mean_pred = pred.mean.sum()
 
 			mean_pred.backward(retain_graph=True)
-			grad_mean = inputs.grad
+			grad_mean = inputs.grad/self.train_std
+			#print("INFO", grad_mean)
 
-			return (pred.mean.detach().numpy(), pred.variance.detach().numpy(), torch.max(torch.abs(grad_mean)).item())
+			return (pred.mean.detach().numpy(), pred.variance.detach().numpy(), torch.max(torch.norm(grad_mean, dim=1)).item())
 		else:
 			with torch.no_grad(), gpytorch.settings.fast_pred_var():
 				f_preds = self.gp(inputs)

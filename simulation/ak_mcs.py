@@ -15,7 +15,7 @@ class AKMCS:
 	def __init__(self, model=None, acq_func=None, sampler=None, evaluator=None, max_iter=100, batch_size=1):
 		#self.model = model if not model == None else OrdinaryKriging(covar_kernel = ScaleKernel(RBFKernel(ard_num_dims=n_dim)))
 		self.acq_func = acq_func if not acq_func == None else ULP()
-		self.sampler = sampler if not sampler == None else U_Sampler(threshold=4)
+		self.sampler = sampler if not sampler == None else U_Sampler(threshold=2)
 		self.evaluator = evaluator if not evaluator == None else LP_Batch(acq_func=self.acq_func)
 		self.stopper = ESC(epsilon_thr=0.01)
 		self.max_iter = max_iter
