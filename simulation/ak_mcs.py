@@ -58,28 +58,34 @@ class AKMCS:
 		# Acquire all estimations
 		mean, variance, max_grad = self.model.execute(self.kriging_sample, with_grad=True)
 
-		# Sample critical region
-		subset_pop, subset_mean, subset_var = self.sampler.sample(
-			self.kriging_sample, 
-			self.doe_input, 
-			self.doe_response,
-			mean,
-			variance)
-		
+		# Compute stopping criterion
 		epsilon_max, should_stop = self.stopper(mean, variance)
-		self.logger.log("Subset size: %d" % len(subset_pop))
 		self.logger.log("Epsilon max : %.6g" % epsilon_max)
-		self.logger.log("Max Expected Gradient: %.4g" % max_grad)
-		# STEP6 Evaluate stopping condition
 		if should_stop:
 			return False
 
-		# log critical region for visualization
-		if len(subset_pop)>0:
-			self.sample_history.append(subset_pop)
-		else:
-			# subset empty, no more candidates left
+		# Sample critical region
+		for i in range(10):
+			subset_pop, subset_mean, subset_var = self.sampler.sample(
+				self.kriging_sample, 
+				self.doe_input, 
+				self.doe_response,
+				mean,
+				variance)
+
+			if subset_pop.shape[0] >= self.batch_size:
+				self.sample_history.append(subset_pop)
+				break
+			else:
+				self.sampler.threshold += 1
+				self.logger.log("Stopping condition not met, increasing sampling threshold to %d." % self.sampler.threshold)
+		
+		if subset_pop.shape[0] <= 0:
+			self.logger.log("Cannot further exapnd critical region. Stopping early.")
 			return False
+
+		self.logger.log("Subset size: %d" % len(subset_pop))
+		self.logger.log("Max Expected Gradient: %.4g" % max_grad)
 
 		# STEP5 Compute learning function on the population and identify best point
 		self.evaluator.set_L(max_grad)
