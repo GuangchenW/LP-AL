@@ -1,12 +1,13 @@
 import numpy as np
 
 from .sampler import Sampler
-from simulation.utility_functions import U
+from simulation.acquisition_functions import U
 
 class U_Sampler(Sampler):
 	def __init__(self, threshold=1.96):
 		super().__init__()
 		self.threshold = threshold
+		self.util_func = U()
 
 	def sample(
 		self, 
@@ -19,7 +20,7 @@ class U_Sampler(Sampler):
 		if self.agressive:
 			return mcs_population, mean, variance
 
-		utilities = U(mcs_population, mean, variance, doe_input, doe_response)
+		utilities = np.array([self._U(mu, var) for mu, var in zip(mean, variance)])
 
 		indices = [i for i in range(len(utilities)) if utilities[i]<self.threshold]
 
@@ -28,3 +29,7 @@ class U_Sampler(Sampler):
 		subset_var = np.array([variance[i] for i in indices])
 
 		return subset_pop, subset_mean, subset_var
+
+	def _U(self, mean, variance):
+		std = max(1e-4, np.sqrt(variance))
+		return abs(mean)/std

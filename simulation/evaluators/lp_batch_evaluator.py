@@ -23,10 +23,8 @@ class LP_Batch(BaseEvaluator):
 	):
 		batch = []
 		utilities = self.acq_func.acquire(subset_points, mean, variance, doe_input, doe_response)
-
-		# HACK
 		utilities = np.log(utilities)
-		# Resample?
+
 		for i in range(min(n_points, len(subset_points))):
 			min_id = np.argmax(utilities)
 			batch.append({

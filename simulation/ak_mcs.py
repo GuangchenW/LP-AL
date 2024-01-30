@@ -11,16 +11,16 @@ from evaluators import LP_Batch
 from subset_samplers import U_Sampler
 
 class AKMCS:
-	def __init__(self, model=None, acq_func=None, sampler=None, evaluator=None, max_iter=400, batch_size=1):
-		#self.model = model if not model == None else OrdinaryKriging(covar_kernel = ScaleKernel(RBFKernel(ard_num_dims=n_dim)))
+	def __init__(self, acq_func=None, sampler=None, evaluator=None, max_iter=400, batch_size=1):
 		self.acq_func = acq_func if not acq_func == None else ULP()
 		self.sampler = sampler if not sampler == None else U_Sampler(threshold=2)
+		#self.sampler.aggressive_mode(True)
 		self.evaluator = evaluator if not evaluator == None else LP_Batch(acq_func=self.acq_func)
 		self.stopper = ESC(epsilon_thr=0.01)
 		self.max_iter = max_iter
 		self.batch_size = batch_size
 
-	def initialize_input(self, obj_func, sample_size=None, num_init=12, lengthscale=None, random=False, silent=True):
+	def initialize_input(self, obj_func, sample_size=None, num_init=12, random=False, silent=True):
 		"""
 		Reset and initialize the objective function and input data. 
 		:param input_space: The monte-carlo population.
@@ -40,7 +40,7 @@ class AKMCS:
 		self.doe_input = self.kriging_sample[:num_init] if not random else np.random.Generator.choice(self.kriging_sample, num_init, replace=False)
 		self.doe_response = np.array([self.obj_func.evaluate(x, True) for x in self.doe_input])
 		print(self.doe_response)
-		self.model = OrdinaryKriging(n_dim=self.obj_func.dim, init_lengthscale=lengthscale)
+		self.model = OrdinaryKriging(n_dim=self.obj_func.dim)
 		self.sample_history = []
 
 		log_file_name = "%s_%s_init%d_batch%d.txt" % (obj_func.name, self.acq_func.name, num_init, self.batch_size)
@@ -144,7 +144,7 @@ class AKMCS:
 				selection_plot = ax.scatter(selection[0], selection[1],c="red",s=4)
 				txt = ax.text(0.05,0.05, str(i), ha="right", va="bottom", transform=fig.transFigure)
 				artists.append([sample_plot, selection_plot, txt])
-			ani = animation.ArtistAnimation(fig=fig, artists=artists, interval=8000/len(self.sample_history))
+			ani = animation.ArtistAnimation(fig=fig, artists=artists, interval=200)
 			plt.show()
 
 

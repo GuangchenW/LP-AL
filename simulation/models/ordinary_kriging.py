@@ -25,18 +25,18 @@ class _ExactGP(ExactGP):
 		return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
 
 class OrdinaryKriging:
-	def __init__(self, n_dim, mean_func=None, covar_kernel=None, init_lengthscale=None):
+	def __init__(self, n_dim, mean_func=None, covar_kernel=None, logger=None, silent=True):
 
 		self.mean_func = mean_func or ConstantMean()
 
 		if covar_kernel is None:
 			self.base_covar_kernel = RBFKernel(ard_num_dims=n_dim)
-			if not init_lengthscale == None:
-				self.base_covar_kernel.lengthscale = init_lengthscale
 			self.covar_kernel = ScaleKernel(self.base_covar_kernel)
 		else:
 			self.covar_kernel = covar_kernel
 
+		self.logger = logger
+		self.silent = silent
 		self.gp = None
 
 	def normalize_inputs(self, inputs):
@@ -59,13 +59,13 @@ class OrdinaryKriging:
 		inputs = torch.tensor(inputs, dtype=torch.double)
 
 		if self.gp == None:
-			self.noise = torch.ones(inputs.shape[0])*0.001
+			self.noise = torch.zeros(inputs.shape[0])*0.001
 			self.likelihood = FixedNoiseGaussianLikelihood(noise=self.noise)
 			self.gp = _ExactGP(inputs, normalized_targets, self.likelihood, self.mean_func, self.covar_kernel)
 			self.gp.to(device)
 		else:
 			self.gp.set_train_data(inputs, normalized_targets, False)
-			self.noise = torch.ones(inputs.shape[0])*0.001
+			self.noise = torch.zeros(inputs.shape[0])*0.001
 			self.gp.likelihood.noise = self.noise
 		self.gp.train()
 		self.gp.likelihood.train()
@@ -76,25 +76,29 @@ class OrdinaryKriging:
 
 		max_iter = 999
 		epsilon = 0.001
-		prev_loss = 100
+		loss_history = []
 		for i in range(max_iter):
 			optimizer.zero_grad()
 			output = self.gp(inputs)
 			loss = -mll(output, normalized_targets)
 			loss.backward()
+			if not self.silent:
+				print("Iter %d - Loss: %.3f" % (i+1, loss.item()))
+
 			optimizer.step()
 
-			if abs(prev_loss-loss.item()) < epsilon:
-				print("Trained", i, "steps")
+			loss_history.append(loss.item())
+			if len(loss_history) > 3 and np.abs(np.diff(loss_history[-5:])).max() < epsilon:
 				break
-			
-			prev_loss = loss.item()
 
+			#if abs(prev_loss-loss.item()) < epsilon:
+			
 		self.gp.eval()
 		self.likelihood.eval()
 
-		ls = self.base_covar_kernel.lengthscale
-		print(f"Lengthscale:{ls}")
+		if not self.silent:
+			ls = self.base_covar_kernel.lengthscale
+			print(f"Lengthscale:{ls}")
 
 	def execute(self, inputs, with_grad=False):
 		inputs = torch.tensor(inputs, dtype=torch.double)
@@ -138,8 +142,12 @@ class OrdinaryKriging:
 if __name__ == "__main__":
 	train_x = torch.linspace(0,1,100)
 	train_y = torch.sin(train_x*2*math.pi+torch.randn(train_x.size())*math.sqrt(0.04))
-	test = OrdinaryKriging()
-	test.train(train_x, train_y)
+	train_x = train_x.numpy()
+	train_y = train_y.numpy()
+	test = OrdinaryKriging(n_dim=1, silent=False)
+	normal_x = test.normalize_inputs(train_x)
+	normal_y = test.normalize_targets(train_y)
+	test.train(normal_x, normal_y)
 
 	test_x = torch.tensor([0.25])
 	f_preds = test.gp(test_x)

@@ -18,13 +18,17 @@ def get_test_suite():
 	return [G_4B(), G_Ras(), G_Beam(), G_Axle(), G_Oscillator(), G_Tube(), G_High_Dim()]
 
 def run_test_single():
-	taker = AKMCS(acq_func=EFF(), batch_size=8)
-	test = G_High_Dim()
-	taker.initialize_input(test, sample_size=10**5, num_init=12)
+	taker = AKMCS(acq_func=ULP(), batch_size=4)
+	test = G_Ras()
+	taker.initialize_input(test, sample_size=10**5, num_init=12, silent=False)
 	taker.kriging_estimate()
 	taker.visualize()
 
 if __name__ == "__main__":
+	run_suite = False
+	if not run_suite:
+		run_test_single()
+		exit(0)
 	tests = get_test_suite()
 	for i in [1,4,8]:
 		takers = get_test_takers(batch_size=i)
