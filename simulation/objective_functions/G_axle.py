@@ -2,12 +2,12 @@ from .objective_function import BaseObjectiveFunction
 
 import numpy as np
 
-class G_axle(BaseObjectiveFunction):
+class G_Axle(BaseObjectiveFunction):
 	def __init__(self):
 		# An active learning Bayesian... Xiao et al. 2022
 		super().__init__(name="front_axle", dim=6)
 
-	def evaluate(self, x):
+	def _evaluate(self, x):
 	    a,b,t,h,M,T = x
 
 	    W_x = a*(h-2*t)**3/(6*h)+b/(6*h)*(h**3-(h-2*t)**3)
@@ -16,7 +16,7 @@ class G_axle(BaseObjectiveFunction):
 	    tau = T/W_p
 	    sigma_s = 460
 
-	    return (sigma_s-np.sqrt(sigma**2+3*tau**2))*0.2
+	    return (sigma_s-np.sqrt(sigma**2+3*tau**2))
 
 	def data_definition(self):
 		a = np.random.normal(12, 0.06)

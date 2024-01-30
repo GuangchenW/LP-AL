@@ -2,11 +2,11 @@ from .objective_function import BaseObjectiveFunction
 
 import numpy as np
 
-class G_tube(BaseObjectiveFunction):
+class G_Tube(BaseObjectiveFunction):
 	def __init__(self):
 		super().__init__(name="cantilever_tube", dim=9)
 
-	def evaluate(self, x):
+	def _evaluate(self, x):
 	    t,d,L1,L2,F1,F2,P,T,S_y = x
 	    theta1 = 0.08726646259971647 # 5 degrees
 	    theta2 = 0.17453292519943295 # 10 degrees

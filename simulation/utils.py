@@ -1,3 +1,5 @@
+import sys
+import os
 import math
 import numpy as np
 import scipy.stats as st
@@ -52,3 +54,33 @@ class ESC:
 		var_Sf = np.sum(prob_wrong_sign_fail*(1-prob_wrong_sign_fail))
 
 		return mu_Ss, mu_Sf, var_Ss, var_Sf
+
+class Logger:
+	def __init__(self, out_target=None, silent=False):
+		directory = os.path.dirname(os.path.realpath(__file__))
+		target_path = directory+"/test_logs/"
+		if not os.path.exists(target_path):
+			os.makedirs(target_path)
+		self.out_target = open(target_path+out_target, "w") if out_target else sys.stdout
+		self.silent = silent
+
+	def log(self, content):
+		self.out_target.write(content+"\n")
+		if not self.silent and self.out_target is not sys.stdout:
+			print(content)
+
+	def log_batch(self, iteration, batch):
+		self.log("**"*25)
+		self.log("Iteration [%i] | Batch size [%i]" % (iteration, len(batch)))
+		for candidate in batch:
+			self.log("--"*25)
+			self.log("Selected" + str(candidate["next"]))
+			self.log("SCORE : %.3f | MEAN : %.4g | VARIANCE : %.4g" % (
+				candidate["utility"],
+				candidate["mean"],
+				candidate["variance"]))
+		self.log("**"*25)
+
+	def clean_up(self):
+		if self.out_target is not sys.stdout:
+			self.out_target.close()

@@ -6,7 +6,7 @@ class G_Simple(BaseObjectiveFunction):
 	def __init__(self):
 		super().__init__(name="simple", dim=2)
 
-	def evaluate(self, x):
+	def _evaluate(self, x):
 		x1=x[0]
 		x2=x[1]
 

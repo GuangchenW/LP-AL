@@ -35,18 +35,6 @@ class MCP_Manager:
 		directory = self.get_data_directory(name)
 		return os.path.exists(directory)
 
-	def cantilever_tube():
-		t = np.random.normal(5, 0.1)
-		d = np.random.normal(42, 0.5)
-		L1 = np.random.uniform(119.75, 120.25)
-		L2 = np.random.uniform(59.75, 60.25)
-		F1 = np.random.normal(3000, 300)
-		F2 = np.random.normal(3000, 300)
-		P = np.random.gumbel(30000, 3000)
-		T = np.random.normal(90000, 9000)
-		S_y = np.random.normal(220, 22)
-		return [t,d,L1,L2,F1,F2,P,T,S_y]
-
 if __name__ == "__main__":
 
 	output_directory = get_data_directory()

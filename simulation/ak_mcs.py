@@ -4,15 +4,14 @@ import matplotlib.animation as animation
 import math
 from gpytorch.kernels import ScaleKernel, RBFKernel
 
-from .logger import Logger
-from .utils import ESC
+from .utils import ESC, Logger
 from models import OrdinaryKriging
 from acquisition_functions import ULP
 from evaluators import LP_Batch
 from subset_samplers import U_Sampler
 
 class AKMCS:
-	def __init__(self, model=None, acq_func=None, sampler=None, evaluator=None, max_iter=100, batch_size=1):
+	def __init__(self, model=None, acq_func=None, sampler=None, evaluator=None, max_iter=400, batch_size=1):
 		#self.model = model if not model == None else OrdinaryKriging(covar_kernel = ScaleKernel(RBFKernel(ard_num_dims=n_dim)))
 		self.acq_func = acq_func if not acq_func == None else ULP()
 		self.sampler = sampler if not sampler == None else U_Sampler(threshold=2)
@@ -21,7 +20,7 @@ class AKMCS:
 		self.max_iter = max_iter
 		self.batch_size = batch_size
 
-	def initialize_input(self, obj_func, sample_size=None, num_init=12, lengthscale=None, random=False):
+	def initialize_input(self, obj_func, sample_size=None, num_init=12, lengthscale=None, random=False, silent=True):
 		"""
 		Reset and initialize the objective function and input data. 
 		:param input_space: The monte-carlo population.
@@ -39,18 +38,19 @@ class AKMCS:
 			self.kriging_sample = self.input_space[:sample_size] if not random else np.random.Generator.choice(self.input_space, sample_size, replace=False)
 		self.num_init = num_init
 		self.doe_input = self.kriging_sample[:num_init] if not random else np.random.Generator.choice(self.kriging_sample, num_init, replace=False)
-		self.doe_response = np.array([self.obj_func.evaluate(x) for x in self.doe_input])
+		self.doe_response = np.array([self.obj_func.evaluate(x, True) for x in self.doe_input])
 		print(self.doe_response)
 		self.model = OrdinaryKriging(n_dim=self.obj_func.dim, init_lengthscale=lengthscale)
 		self.sample_history = []
 
 		log_file_name = "%s_%s_init%d_batch%d.txt" % (obj_func.name, self.acq_func.name, num_init, self.batch_size)
-		self.logger = Logger(log_file_name, silence=True)
+		self.logger = Logger(log_file_name, silent=silent)
 
 	def kriging_estimate(self):
 		for i in range(self.max_iter):
 			if not self.kriging_step(i):
 				break
+		self.compute_cov()
 
 	def kriging_step(self, iter_count):
 		# STEP3 Compute Kriging model
@@ -65,7 +65,7 @@ class AKMCS:
 			return False
 
 		# Sample critical region
-		for i in range(10):
+		for i in range(16):
 			subset_pop, subset_mean, subset_var = self.sampler.sample(
 				self.kriging_sample, 
 				self.doe_input, 
@@ -77,11 +77,11 @@ class AKMCS:
 				self.sample_history.append(subset_pop)
 				break
 			else:
-				self.sampler.threshold += 1
+				self.sampler.threshold += 2
 				self.logger.log("Stopping condition not met, increasing sampling threshold to %d." % self.sampler.threshold)
 		
 		if subset_pop.shape[0] <= 0:
-			self.logger.log("Cannot further exapnd critical region. Stopping early.")
+			self.logger.log("Cannot further expand critical region. Stopping early.")
 			return False
 
 		self.logger.log("Subset size: %d" % len(subset_pop))
@@ -100,32 +100,34 @@ class AKMCS:
 		# STEP6 Update doe with batch
 		for candidate in batch:
 			self.doe_input = np.append(self.doe_input, [candidate["next"]], axis=0)
-			self.doe_response = np.append(self.doe_response, self.obj_func.evaluate(candidate["next"]))
+			self.doe_response = np.append(
+				self.doe_response, 
+				self.obj_func.evaluate(candidate["next"], True))
 
 		self.logger.log_batch(iter_count, batch)
 
 		return True
 
-	#TODO
-	def tail(self):
+	def compute_cov(self):
 		# STEP8: Compute coefficient of variation of the probability of failure
 		N_MC = self.input_space.shape[0]
 		z, ss = self.model.execute(self.input_space)
-		num_negative_predictions = np.sum(z < 0)
+		num_negative_predictions = np.sum(z <= 0)
 		P_f = num_negative_predictions / N_MC
 		cov_fail = np.sqrt((1-P_f)/(P_f*N_MC))
 
 		N_true_f = 0
 		for i in range(N_MC):
-			if self.obj_func.evaluate(self.input_space[i]) < 0:
+			if self.obj_func.evaluate(self.input_space[i], True) <= 0:
 				N_true_f += 1
 
-		self.logger.log(f"True probability of failure: {N_true_f/N_MC:.3g}")
-		self.logger.log(f"Estimated probability of failure: {P_f:.3g}")
-		self.logger.log(f"COV of probability of failure: {cov_fail:.3g}")
+		self.logger.log(f"True probability of failure: {N_true_f/N_MC:.6g}")
+		self.logger.log(f"Estimated probability of failure: {P_f:.6g}")
+		self.logger.log(f"COV of probability of failure: {cov_fail:.6g}")
 		self.logger.clean_up()
-		#return
 
+	#TODO
+	def visualize(self):
 		if not self.doe_input.shape[1] == 2:
 			return
 		############################################################

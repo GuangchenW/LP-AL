@@ -7,7 +7,7 @@ class G_High_Dim(BaseObjectiveFunction):
 		# An improved AK-MCS... Liu et al. 2016
 		super().__init__(name="high_dimensional", dim=20)
 
-	def evaluate(self, x):
+	def _evaluate(self, x):
 		term_sum = x.sum()
 
 		return self.dim+0.6*np.sqrt(self.dim)-term_sum

@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 class Sampler(ABC):
 	def __init__(self):
-		pass
+		self.agressive = False
 
 	@abstractmethod
 	def sample(self, 
@@ -19,3 +19,6 @@ class Sampler(ABC):
 		:param mean: the estimated mean of `mcs_population`
 		:param varaince: the estimated variance of `mcs_population`
 		"""
+
+	def aggressive_mode(self, should_be):
+		self.agressive = should_be

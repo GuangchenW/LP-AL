@@ -7,7 +7,7 @@ class G_Roof(BaseObjectiveFunction):
 		# An active learning Bayesian... Xiao et al. 2022
 		super().__init__(name="roof_truss", dim=6)
 
-	def evaluate(self, x):
+	def _evaluate(self, x):
 	    q,l,E_s,E_c,A_s,A_c = x
 
 	    return 0.03-0.5*(q*l**2)*(3.81/(A_c*E_c)+1.13/(A_s*E_s))

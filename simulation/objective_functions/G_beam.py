@@ -2,17 +2,17 @@ from .objective_function import BaseObjectiveFunction
 
 import numpy as np
 
-class G_beam(BaseObjectiveFunction):
+class G_Beam(BaseObjectiveFunction):
 	def __init__(self):
 		super().__init__(name="cantilever_beam", dim=3)
 
-	def evaluate(self, x):
+	def _evaluate(self, x):
 		w=x[0]
 		L=x[1]
 		b=x[2]
 		E=26
 		I=(b**4)/12
-		return (L/325-w*b*L**4/(8*E*I))*100
+		return (L/325-w*b*L**4/(8*E*I))
 
 	def data_definition(self):
 		w = np.random.normal(1000, 100)

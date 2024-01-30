@@ -39,21 +39,33 @@ class OrdinaryKriging:
 
 		self.gp = None
 
-	def train(self, inputs, labels, device="cpu"):
+	def normalize_inputs(self, inputs):
 		inputs = torch.tensor(inputs, dtype=torch.double)
 		self.train_mean = inputs.mean(dim=0)
 		self.train_std = inputs.std(dim=0)
 		normalized_inputs = (inputs-self.train_mean)/self.train_std
-		labels = torch.tensor(labels, dtype=torch.double)
+		return normalized_inputs
+
+	def normalize_targets(self, targets):
+		targets = torch.tensor(targets, dtype=torch.double)
+		self.target_mean = targets.mean(dim=0)
+		self.target_std = targets.std(dim=0)
+		normalized_targets = (targets-self.target_mean)/self.target_std
+		return normalized_targets
+
+	def train(self, inputs, targets, device="cpu"):
+		normalized_targets = self.normalize_targets(targets)
+		#normalized_targets = torch.tensor(targets, dtype=torch.double)
+		inputs = torch.tensor(inputs, dtype=torch.double)
 
 		if self.gp == None:
-			self.noise = torch.ones(normalized_inputs.shape[0])*0.001
+			self.noise = torch.ones(inputs.shape[0])*0.001
 			self.likelihood = FixedNoiseGaussianLikelihood(noise=self.noise)
-			self.gp = _ExactGP(normalized_inputs, labels, self.likelihood, self.mean_func, self.covar_kernel)
+			self.gp = _ExactGP(inputs, normalized_targets, self.likelihood, self.mean_func, self.covar_kernel)
 			self.gp.to(device)
 		else:
-			self.gp.set_train_data(normalized_inputs, labels, False)
-			self.noise = torch.ones(normalized_inputs.shape[0])*0.001
+			self.gp.set_train_data(inputs, normalized_targets, False)
+			self.noise = torch.ones(inputs.shape[0])*0.001
 			self.gp.likelihood.noise = self.noise
 		self.gp.train()
 		self.gp.likelihood.train()
@@ -67,8 +79,8 @@ class OrdinaryKriging:
 		prev_loss = 100
 		for i in range(max_iter):
 			optimizer.zero_grad()
-			output = self.gp(normalized_inputs)
-			loss = -mll(output, labels)
+			output = self.gp(inputs)
+			loss = -mll(output, normalized_targets)
 			loss.backward()
 			optimizer.step()
 
@@ -86,25 +98,33 @@ class OrdinaryKriging:
 
 	def execute(self, inputs, with_grad=False):
 		inputs = torch.tensor(inputs, dtype=torch.double)
-		#print(inputs)
-		inputs = (inputs-self.train_mean)/self.train_std
 		
 		if with_grad:
 			inputs.requires_grad = True
 
 			pred = self.likelihood(self.gp(inputs), noise=torch.zeros(inputs.shape[0]))
-			mean_pred = pred.mean.sum()
 
+			mean = pred.mean.detach()
+			mean = mean * self.target_std + self.target_mean
+
+			mean_pred = pred.mean.sum()
 			mean_pred.backward(retain_graph=True)
-			grad_mean = inputs.grad/self.train_std
+			#grad_mean = inputs.grad/self.train_std*self.target_std
+			grad_mean = inputs.grad*self.target_std
 			#print("INFO", grad_mean)
 
-			return (pred.mean.detach().numpy(), pred.variance.detach().numpy(), torch.max(torch.norm(grad_mean, dim=1)).item())
+			#TODO
+			min_lipschitz = 0.25
+			lipschitz = max(torch.max(torch.norm(grad_mean, dim=1)).item(), min_lipschitz)
+
+			return (mean.numpy(), pred.variance.detach().numpy(), lipschitz)
 		else:
 			with torch.no_grad(), gpytorch.settings.fast_pred_var():
 				f_preds = self.gp(inputs)
-				return (f_preds.mean.numpy(), f_preds.variance.numpy())
+				mean = f_preds.mean * self.target_std + self.target_mean
+				return (mean.numpy(), f_preds.variance.numpy())
 
+	# Obsolete, do not use
 	def fantasize(self, inputs, targets, tests):
 		noises = torch.ones(np.shape(inputs)[0])*0.001
 		inputs = torch.tensor(inputs, dtype=torch.double)

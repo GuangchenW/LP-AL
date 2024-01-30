@@ -7,7 +7,7 @@ class G_Ras(BaseObjectiveFunction):
 		super().__init__(name="modified_rastrigin", dim=2)
 		self.d = d
 
-	def evaluate(self, x):
+	def _evaluate(self, x):
 		x1=x[0]
 		x2=x[1]
 		def calc_term(x_i):

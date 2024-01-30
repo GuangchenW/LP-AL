@@ -16,6 +16,9 @@ class U_Sampler(Sampler):
 		mean, 
 		variance
 	):
+		if self.agressive:
+			return mcs_population, mean, variance
+
 		utilities = U(mcs_population, mean, variance, doe_input, doe_response)
 
 		indices = [i for i in range(len(utilities)) if utilities[i]<self.threshold]

@@ -7,7 +7,7 @@ class G_4B(BaseObjectiveFunction):
 		super().__init__(name="4B", dim=2)
 		self.k = k
 
-	def evaluate(self, x):
+	def _evaluate(self, x):
 		x1=x[0]
 		x2=x[1]
 		b1 = 3 + 0.1*(x1-x2)**2 - (x1+x2)/np.sqrt(2)
