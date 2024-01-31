@@ -12,7 +12,7 @@ class G_Beam(BaseObjectiveFunction):
 		b=x[2]
 		E=26
 		I=(b**4)/12
-		return (L/325-w*b*L**4/(8*E*I))
+		return (L/325-w*b*L**4/(8*E*I))*10
 
 	def data_definition(self):
 		w = np.random.normal(1000, 100)

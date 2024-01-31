@@ -26,6 +26,8 @@ class ULP(BaseAcquisitionFunction):
 
 
 	def _ULP(self, candidate, mean, variance, doe_input, doe_response):
+		if variance < 1e-10:
+			return float("nan")
 		square_norm = ((doe_input-candidate)**2).sum()
 		closest_id = np.argmin(square_norm)
 		

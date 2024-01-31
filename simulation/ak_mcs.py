@@ -5,7 +5,7 @@ import math
 from gpytorch.kernels import ScaleKernel, RBFKernel
 
 from .utils import ESC, Logger
-from models import OrdinaryKriging
+from models import GPRegression, OrdinaryKriging
 from acquisition_functions import ULP
 from evaluators import LP_Batch
 from subset_samplers import U_Sampler
@@ -13,10 +13,10 @@ from subset_samplers import U_Sampler
 class AKMCS:
 	def __init__(self, acq_func=None, sampler=None, evaluator=None, max_iter=400, batch_size=1):
 		self.acq_func = acq_func if not acq_func == None else ULP()
-		self.sampler = sampler if not sampler == None else U_Sampler(threshold=2)
+		self.sampler = sampler if not sampler == None else U_Sampler(threshold=4)
 		#self.sampler.aggressive_mode(True)
 		self.evaluator = evaluator if not evaluator == None else LP_Batch(acq_func=self.acq_func)
-		self.stopper = ESC(epsilon_thr=0.01)
+		self.stopper = ESC(epsilon_thr=0.02)
 		self.max_iter = max_iter
 		self.batch_size = batch_size
 
@@ -40,6 +40,7 @@ class AKMCS:
 		self.doe_input = self.kriging_sample[:num_init] if not random else np.random.Generator.choice(self.kriging_sample, num_init, replace=False)
 		self.doe_response = np.array([self.obj_func.evaluate(x, True) for x in self.doe_input])
 		print(self.doe_response)
+		#self.model = GPRegression(n_dim=self.obj_func.dim)
 		self.model = OrdinaryKriging(n_dim=self.obj_func.dim)
 		self.sample_history = []
 
@@ -56,7 +57,10 @@ class AKMCS:
 		# STEP3 Compute Kriging model
 		self.model.train(self.doe_input, self.doe_response)
 		# Acquire all estimations
-		mean, variance, max_grad = self.model.execute(self.kriging_sample, with_grad=True)
+		mean, variance, grad = self.model.execute(self.kriging_sample, with_grad=True)
+		# Compute max norm of expected gradient
+		max_grad = np.max(np.linalg.norm(grad))
+		max_grad = max(0.25, max_grad)
 
 		# Compute stopping criterion
 		epsilon_max, should_stop = self.stopper(mean, variance)
@@ -118,7 +122,7 @@ class AKMCS:
 
 		N_true_f = 0
 		for i in range(N_MC):
-			if self.obj_func.evaluate(self.input_space[i], True) <= 0:
+			if self.obj_func.evaluate(self.input_space[i], True) < 0:
 				N_true_f += 1
 
 		self.logger.log(f"True probability of failure: {N_true_f/N_MC:.6g}")
@@ -156,7 +160,7 @@ class AKMCS:
 		grid_y = np.linspace(-5, 5, N_GRID)
 		xpts, ypts = np.meshgrid(grid_x, grid_y)
 		pts = np.dstack((xpts.ravel(), ypts.ravel()))
-		z, ss = self.model.execute(pts)
+		z, ss = self.model.execute(pts[0])
 		z = z.reshape((N_GRID,N_GRID))
 
 		plt.figure()

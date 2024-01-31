@@ -18,8 +18,8 @@ def get_test_suite():
 	return [G_4B(), G_Ras(), G_Beam(), G_Axle(), G_Oscillator(), G_Tube(), G_High_Dim()]
 
 def run_test_single():
-	taker = AKMCS(acq_func=ULP(), batch_size=4)
-	test = G_Ras()
+	taker = AKMCS(acq_func=EFF(), batch_size=1)
+	test = G_Beam()
 	taker.initialize_input(test, sample_size=10**5, num_init=12, silent=False)
 	taker.kriging_estimate()
 	taker.visualize()
@@ -37,7 +37,3 @@ if __name__ == "__main__":
 				taker.initialize_input(test, sample_size=10**5, num_init=12)
 				taker.kriging_estimate()
 
-	for test in tests:
-		for r in run:
-
-			r.visualize()

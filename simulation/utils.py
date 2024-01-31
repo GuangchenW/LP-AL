@@ -38,7 +38,11 @@ class ESC:
 		However, these cannot be used as is because the number of false positives and negatives
 		are still randomly distributed.
 		"""
-		mask_safe = mean <= 0
+		mask_uncertain = ~(variance == 0)
+		mean = mean[mask_uncertain]
+		variance = variance[mask_uncertain]
+
+		mask_safe = mean >= 0
 		mask_fail = ~mask_safe
 
 		z = -abs(mean/np.sqrt(variance))

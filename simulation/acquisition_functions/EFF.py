@@ -27,7 +27,9 @@ class EFF(BaseAcquisitionFunction):
 
 
 	def _NEFF(self, candidate, mean, variance):
-		# Since EFF is a maximization heuristic, we return the negative of EFF (NEFF).
+		if variance < 1e-10:
+			return float("nan")
+
 		mu = mean
 		var = variance
 		std = np.sqrt(var)
@@ -37,8 +39,6 @@ class EFF(BaseAcquisitionFunction):
 		# Also avoids division by zero stuff.
 		#if std < 0.05:
 		#	return math.inf
-
-		std = max(1e-4, std)
 
 		epsilon = 2*std
 		cprob = stats.norm.cdf(-mu/std)

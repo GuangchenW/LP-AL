@@ -27,13 +27,13 @@ class H(BaseAcquisitionFunction):
 
 
 	def _H(self, candidate, mean, variance):
-		# Since H is a maximization heuristic, we return the negative of EFF (NEFF).
+		if variance < 1e-10:
+			return float("nan")
+
 		mu = mean
 		var = variance
 
 		std = np.sqrt(var)
-
-		std = max(1e-4, std)
 
 		upper = (2*std-mu)/std
 		lower = (-2*std-mu)/std

@@ -24,5 +24,7 @@ class U(BaseAcquisitionFunction):
 		return acq
 
 	def _U(self, mean, variance):
-		std = max(1e-4, np.sqrt(variance))
+		if variance < 1e-10:
+			return float("nan")
+		std = np.sqrt(variance)
 		return -abs(mean)/std
