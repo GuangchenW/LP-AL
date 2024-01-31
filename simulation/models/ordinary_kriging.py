@@ -13,7 +13,10 @@ class OrdinaryKriging(BaseModel):
 		super().__init__()
 		self.regression = regression or regr_linear
 		self.correlation = correlation or corr_gauss
-		self.dacefit = DACE(regr=self.regression, corr=self.correlation, theta=1.0, thetaL=1e-5, thetaU=1e2)
+		theta = np.ones(n_dim)
+		thetaL = theta * 1e-4
+		thetaU = theta * 20
+		self.dacefit = DACE(regr=self.regression, corr=self.correlation, theta=theta, thetaL=thetaL, thetaU=thetaU)
 
 	def train(self, inputs, targets):
 		self.dacefit.fit(inputs, targets)

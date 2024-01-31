@@ -38,7 +38,8 @@ class ESC:
 		However, these cannot be used as is because the number of false positives and negatives
 		are still randomly distributed.
 		"""
-		mask_uncertain = ~(variance == 0)
+		mask_uncertain = variance < 1e-10
+		mask_uncertain = ~mask_uncertain
 		mean = mean[mask_uncertain]
 		variance = variance[mask_uncertain]
 
