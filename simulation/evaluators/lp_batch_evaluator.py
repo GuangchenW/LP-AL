@@ -9,6 +9,9 @@ class LP_Batch(BaseEvaluator):
 		super().__init__(acq_func=acq_func, logger=logger)
 		self.L = float("nan")
 
+	def set_grad(self, grad):
+		self.grad = grad
+
 	def set_L(self, L):
 		self.L = min(10,L)
 
@@ -23,20 +26,25 @@ class LP_Batch(BaseEvaluator):
 	):
 		batch = []
 		utilities = self.acq_func.acquire(subset_points, mean, variance, doe_input, doe_response)
+		utilities += 1e-10 # To prevent log0 undefined
 		utilities = np.log(utilities)
 
+		# TEST HACK
+		grad_norm = np.linalg.norm(self.grad, axis=1)
+
 		for i in range(min(n_points, len(subset_points))):
-			min_id = np.argmax(utilities)
+			max_id = np.argmax(utilities)
 			batch.append({
-				"next": subset_points[min_id],
-				"mean": mean[min_id],
-				"variance": variance[min_id],
-				"utility": utilities[min_id]
+				"next": subset_points[max_id],
+				"mean": mean[max_id],
+				"variance": variance[max_id],
+				"utility": utilities[max_id]
 				})
 
+			#self.L = grad_norm[max_id]
 			utilities = self.apply_hammer(subset_points, batch[-1], utilities)
-			#doe_input = np.append(doe_input, [subset_points[min_id]], axis=0)
-			#doe_response = np.append(doe_response, [mean[min_id]])
+			#doe_input = np.append(doe_input, [subset_points[max_id]], axis=0)
+			#doe_response = np.append(doe_response, [mean[max_id]])
 			#k=i+1
 			#mean, variance = self.model.fantasize(doe_input[-k:], doe_response[-k:], subset_points)
 

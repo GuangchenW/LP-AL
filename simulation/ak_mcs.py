@@ -16,7 +16,7 @@ class AKMCS:
 		self.sampler = sampler if not sampler == None else U_Sampler(threshold=4)
 		#self.sampler.aggressive_mode(True)
 		self.evaluator = evaluator if not evaluator == None else LP_Batch(acq_func=self.acq_func)
-		self.stopper = ESC(epsilon_thr=0.02)
+		self.stopper = ESC(epsilon_thr=0.01)
 		self.max_iter = max_iter
 		self.batch_size = batch_size
 
@@ -59,7 +59,7 @@ class AKMCS:
 		# Acquire all estimations
 		mean, variance, grad = self.model.execute(self.kriging_sample, with_grad=True)
 		# Compute max norm of expected gradient
-		max_grad = np.max(np.linalg.norm(grad))
+		max_grad = np.max(np.linalg.norm(grad, axis=1))
 		max_grad = max(0.25, max_grad)
 
 		# Compute stopping criterion
@@ -92,6 +92,7 @@ class AKMCS:
 		self.logger.log("Max Expected Gradient: %.4g" % max_grad)
 
 		# STEP5 Compute learning function on the population and identify best point
+		self.evaluator.set_grad(grad)
 		self.evaluator.set_L(max_grad)
 		batch = self.evaluator.obtain_batch(
 			subset_pop, 

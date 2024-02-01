@@ -11,7 +11,7 @@ from .model import BaseModel
 class OrdinaryKriging(BaseModel):
 	def __init__(self, n_dim, regression=None, correlation=None):
 		super().__init__()
-		self.regression = regression or regr_linear
+		self.regression = regression or regr_constant
 		self.correlation = correlation or corr_gauss
 		theta = np.ones(n_dim)
 		thetaL = theta * 1e-4

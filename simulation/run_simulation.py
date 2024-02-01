@@ -18,11 +18,17 @@ def get_test_suite():
 	return [G_4B(), G_Ras(), G_Beam(), G_Axle(), G_Oscillator(), G_Tube(), G_High_Dim()]
 
 def run_test_single():
-	taker = AKMCS(acq_func=EFF(), batch_size=8)
-	test = G_Oscillator()
-	taker.initialize_input(test, sample_size=10**5, num_init=12, silent=False)
+	taker = AKMCS(acq_func=EFF(), batch_size=4)
+	test = G_Ras()
+	taker.initialize_input(test, sample_size=10**5, num_init=nearest_init_num(test.dim), silent=False)
 	taker.kriging_estimate()
 	taker.visualize()
+
+def nearest_init_num(n_dim):
+	num = 12
+	while num < n_dim:
+		num *= 2
+	return num
 
 if __name__ == "__main__":
 	run_suite = False
@@ -34,6 +40,6 @@ if __name__ == "__main__":
 		takers = get_test_takers(batch_size=i)
 		for taker in takers:
 			for test in tests:
-				taker.initialize_input(test, sample_size=10**5, num_init=12)
+				taker.initialize_input(test, sample_size=10**5, num_init=nearest_init_num(test.dim))
 				taker.kriging_estimate()
 
