@@ -5,7 +5,7 @@ from .acquisition_function import BaseAcquisitionFunction
 
 class EFF(BaseAcquisitionFunction):
 	def __init__(self, device="cpu", logger=None):
-		super().__init__(name="NEFF", device=device, logger=logger)
+		super().__init__(name="EFF", device=device, logger=logger)
 
 	def acquire(
 		self,

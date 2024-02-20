@@ -125,7 +125,7 @@ class GPRegression:
 			#min_lipschitz = 0.25
 			#lipschitz = max(torch.max(torch.norm(grad_mean, dim=1)).item(), min_lipschitz)
 
-			return (mean.numpy(), pred.variance.detach().numpy(), grad_mean.detach.numpy())
+			return (mean.numpy(), pred.variance.detach().numpy(), grad_mean.detach().numpy())
 		else:
 			with torch.no_grad(), gpytorch.settings.fast_pred_var():
 				f_preds = self.gp(inputs)

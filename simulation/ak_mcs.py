@@ -39,7 +39,7 @@ class AKMCS:
 		self.num_init = num_init
 		self.doe_input = self.kriging_sample[:num_init] if not random else np.random.Generator.choice(self.kriging_sample, num_init, replace=False)
 		self.doe_response = np.array([self.obj_func.evaluate(x, True) for x in self.doe_input])
-		print(self.doe_response)
+		#print(self.doe_response)
 		#self.model = GPRegression(n_dim=self.obj_func.dim)
 		self.model = OrdinaryKriging(n_dim=self.obj_func.dim)
 		self.sample_history = []
@@ -47,11 +47,13 @@ class AKMCS:
 		log_file_name = "%s_%s_init%d_batch%d.txt" % (obj_func.name, self.acq_func.name, num_init, self.batch_size)
 		self.logger = Logger(log_file_name, silent=silent)
 
-	def kriging_estimate(self):
+	def kriging_estimate(self, do_mcs=False):
 		for i in range(self.max_iter):
 			if not self.kriging_step(i):
 				break
-		self.compute_cov()
+		result = self.compute_failure_probability(do_mcs=do_mcs)
+		result["iter"] = i
+		return result
 
 	def kriging_step(self, iter_count):
 		# STEP3 Compute Kriging model
@@ -113,23 +115,34 @@ class AKMCS:
 
 		return True
 
-	def compute_cov(self):
+	def compute_failure_probability(self, do_mcs):
 		# STEP8: Compute coefficient of variation of the probability of failure
 		N_MC = self.input_space.shape[0]
 		z, ss = self.model.execute(self.input_space)
 		num_negative_predictions = np.sum(z <= 0)
 		P_f = num_negative_predictions / N_MC
 		cov_fail = np.sqrt((1-P_f)/(P_f*N_MC))
+		# TODO: Clean this up
+		true_P_f = float("nan")
+		if do_mcs:
+			N_true_f = 0
+			for i in range(N_MC):
+				if self.obj_func.evaluate(self.input_space[i], True) < 0:
+					N_true_f += 1
+			true_P_f = N_true_f/N_MC
+			self.logger.log(f"True probability of failure: {true_P_f:.6g}")
 
-		N_true_f = 0
-		for i in range(N_MC):
-			if self.obj_func.evaluate(self.input_space[i], True) < 0:
-				N_true_f += 1
-
-		self.logger.log(f"True probability of failure: {N_true_f/N_MC:.6g}")
 		self.logger.log(f"Estimated probability of failure: {P_f:.6g}")
 		self.logger.log(f"COV of probability of failure: {cov_fail:.6g}")
 		self.logger.clean_up()
+		return {
+			"system": self.obj_func.name,
+			"Pf":  true_P_f,
+			"name": self.acq_func.name,
+			"Pfe": P_f,
+			"COV": cov_fail,
+			"re": abs(true_P_f-P_f)/true_P_f
+		}
 
 	#TODO
 	def visualize(self):

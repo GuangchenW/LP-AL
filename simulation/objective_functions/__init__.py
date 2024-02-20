@@ -8,3 +8,4 @@ from .G_tube import G_Tube
 from .G_high_dim import G_High_Dim
 from .G_roof import G_Roof
 from .G_simple import G_Simple
+from .G_fem import G_FEM

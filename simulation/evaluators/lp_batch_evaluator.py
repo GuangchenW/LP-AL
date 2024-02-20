@@ -13,7 +13,7 @@ class LP_Batch(BaseEvaluator):
 		self.grad = grad
 
 	def set_L(self, L):
-		self.L = min(10,L)
+		self.L = max(0.25,L)
 
 	def obtain_batch(
 		self,
@@ -41,7 +41,7 @@ class LP_Batch(BaseEvaluator):
 				"utility": utilities[max_id]
 				})
 
-			#self.L = grad_norm[max_id]
+			self.set_L(np.linalg.norm(self.grad[max_id]))
 			utilities = self.apply_hammer(subset_points, batch[-1], utilities)
 			#doe_input = np.append(doe_input, [subset_points[max_id]], axis=0)
 			#doe_response = np.append(doe_response, [mean[max_id]])
@@ -63,7 +63,6 @@ class LP_Batch(BaseEvaluator):
 
 	def log_hammer_func(self, candidate, center, offset):
 		dist = np.linalg.norm(center-candidate)
-		#dist = np.dot(center, candidate)/(np.linalg.norm(center)*np.linalg.norm(candidate))
 		z = self.L*dist-abs(offset)
 		phi = 0.5*math.erfc(-z)
 		phi = max(sys.float_info.min, phi) # Prevent cases where erfc evaluates to 0
