@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 from simulation import AKMCS
 from objective_functions import G_Simple, G_4B, G_Ras, G_Oscillator, G_Beam, G_Roof, G_Axle, G_Tube, G_High_Dim, G_FEM
@@ -17,11 +18,11 @@ def get_test_takers(batch_size=1):
 
 def get_test_suite():
 	#return [G_4B(), G_Ras(), G_Beam(), G_Axle(), G_Oscillator(), G_Tube(), G_High_Dim()]
-	return [G_4B()]
+	return [G_Oscillator(), G_Tube()]
 
 def run_test_single():
-	taker = AKMCS(acq_func=EFF(), batch_size=8)
-	test = G_4B()
+	taker = AKMCS(acq_func=EFF(), batch_size=4)
+	test = G_Ras()
 	taker.initialize_input(test, sample_size=10**5, num_init=nearest_init_num(test.dim), silent=False)
 	result = taker.kriging_estimate(do_mcs=True)
 	print(result)
@@ -39,16 +40,18 @@ if __name__ == "__main__":
 		run_test_single()
 		exit(0)
 	tests = get_test_suite()
-	file = open("experiement.txt", "w")
-	for i in [1,4,8]:
-		file.write("batch %d \n" % i)
-		takers = get_test_takers(batch_size=i)
-		for taker in takers:
-			for test in tests:
-				taker.initialize_input(test, sample_size=10**5, num_init=nearest_init_num(test.dim))
-				result = taker.kriging_estimate(do_mcs=True)
-				line = "%s,%f,%s,%d,%f,%f,%f\n" % (result["system"], result["Pf"], result["name"], result["iter"], result["Pfe"], result["COV"], result["re"])
-				print(line)
-				file.write(line)
-	file.close()
+	for i in range(1):
+		seed = np.random.randint(0,10000)
+		file = open("experiement%d.txt"%i, "w")
+		for i in [1,4,8]:
+			file.write("batch %d \n" % i)
+			takers = get_test_takers(batch_size=i)
+			for taker in takers:
+				for test in tests:
+					taker.initialize_input(test, sample_size=10**5, num_init=nearest_init_num(test.dim), rng=seed, silent=True)
+					result = taker.kriging_estimate(do_mcs=True)
+					line = "%s,%f,%s,%d,%f,%f,%f\n" % (result["system"], result["Pf"], result["name"], result["iter"], result["Pfe"], result["COV"], result["re"])
+					print(line)
+					file.write(line)
+		file.close()
 

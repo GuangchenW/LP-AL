@@ -20,7 +20,7 @@ class AKMCS:
 		self.max_iter = max_iter
 		self.batch_size = batch_size
 
-	def initialize_input(self, obj_func, sample_size=None, num_init=12, random=False, silent=True):
+	def initialize_input(self, obj_func, sample_size=None, num_init=12, rng=1, silent=True):
 		"""
 		Reset and initialize the objective function and input data. 
 		:param input_space: The monte-carlo population.
@@ -31,24 +31,30 @@ class AKMCS:
 		"""
 		self.obj_func = obj_func
 		self.input_space = obj_func.load_data()
+		np.random.seed(rng)
+		np.random.shuffle(self.input_space)
+
 		if sample_size == None:
 			self.kriging_sample = self.input_space
 		else:
 			sample_size = min(self.input_space.shape[0], sample_size)
-			self.kriging_sample = self.input_space[:sample_size] if not random else np.random.Generator.choice(self.input_space, sample_size, replace=False)
+			self.kriging_sample = self.input_space[:sample_size]
 		self.num_init = num_init
-		self.doe_input = self.kriging_sample[:num_init] if not random else np.random.Generator.choice(self.kriging_sample, num_init, replace=False)
+		self.doe_input = self.kriging_sample[:num_init]
 		self.doe_response = np.array([self.obj_func.evaluate(x, True) for x in self.doe_input])
-		#print(self.doe_response)
+		print("Bootstrap: ", self.doe_response)
 		#self.model = GPRegression(n_dim=self.obj_func.dim)
 		self.model = OrdinaryKriging(n_dim=self.obj_func.dim)
 		self.sample_history = []
 
 		log_file_name = "%s_%s_init%d_batch%d.txt" % (obj_func.name, self.acq_func.name, num_init, self.batch_size)
 		self.logger = Logger(log_file_name, silent=silent)
+		self.silent = silent
 
 	def kriging_estimate(self, do_mcs=False):
 		for i in range(self.max_iter):
+			if self.silent:
+				print("%s | %s | iter : %d" % (self.acq_func.name, self.obj_func.name, i))
 			if not self.kriging_step(i):
 				break
 		result = self.compute_failure_probability(do_mcs=do_mcs)
