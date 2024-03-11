@@ -1,192 +1,85 @@
+from objective_functions import G_Oscillator
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-import pickle
-import math
-from gpytorch.kernels import ScaleKernel, RBFKernel
-
-from models import OrdinaryKriging
-from objective_functions import G_4B, G_2B, G_Ras, G_hat, G_beam, G_osc, G_tube
-from acquisition_functions import ULP, NEFF, NH, VAR
-from evaluators import LP_Batch, NLP_Batch
-from subset_samplers import U_Sampler
-
-# Monte-Carlo samples
-with open('./tests/data/data.pkl', 'rb') as file:
-	loaded_data = pickle.load(file)
-
-points = np.array(loaded_data)
-
-#with open('./nonlinear_oscillator.npy', 'rb') as file:
-#	points = np.load(file)
-
-n_dim = points.shape[1]
-N_MC = np.shape(points)[0]
-print(N_MC)
-
-# Seems to be MC smaples alright
-#plt.plot(point_x1, point_x2, 'bo')
-#plt.show()
-
-# Objective function
-G = G_Ras
-
-# This is STEP2 "...a dozen points are enough"
-# Using points from MC samples instead
-N_INIT = 12 # Number of bootstrap points
-
-# Query performance function and repack data
-DOE_input = points[:N_INIT]
-DOE_output = np.zeros(N_INIT)
-for i in range(N_INIT):
-	DOE_output[i] = G(DOE_input[i])
-
-print("Initial observations: ", DOE_output)
-
-max_iter = 100
-batch_size = 8
-kriging_model = OrdinaryKriging(covar_kernel = ScaleKernel(RBFKernel(ard_num_dims=n_dim)))
-acq_func = VAR()
-evaluator = LP_Batch(acq_func=acq_func)
-sampler = U_Sampler(threshold=4)
-subset_samples = []
-for i in range(max_iter):
-
-	# STEP3 Compute Kriging model
-	kriging_model.train(DOE_input, DOE_output)
-	# STEP4 Estimate the probabilty of failure based on estimation of all points
-	# in MC sample. P_f is calculated by P_f=N_{G<=0}/N_MC
+import matplotlib.cm as cm
 
 
-	# acquire all estimations
-	mean, variance = kriging_model.execute(points)
+def visualize(x_mean, x_std, y_mean, y_std):
+	# Visualization
+	# Density of grid for visualization
+	N_GRID = 400
+	grid_x = np.linspace(x_mean-4*x_std, x_mean+4*x_std, N_GRID)
+	grid_y = np.linspace(y_mean-4*y_std, y_mean+4*y_std, N_GRID)
+	xpts, ypts = np.meshgrid(grid_x, grid_y)
+	pts = np.dstack((xpts.ravel(), ypts.ravel()))
 
-	# sample critical region
-	subset_pop, subset_mean, subset_var = sampler.sample(points, DOE_input, DOE_output, mean, variance)
-	
-	N_f = np.sum(mean < 0) # number of failures by Kriging model
-	S_f = np.sum(subset_mean < 0) # number of likely false negatives 
-	S_s = np.sum(subset_mean > 0) # number of likely false positives
-	epsilon_max = max(abs(N_f/(N_f-S_f)-1), abs(N_f/(N_f+S_s)-1))
-	epsilon_thr = 0.05
-	print("epsilon_max : ", epsilon_max)
+	# Mesh
+	x1_grid, x2_grid = np.meshgrid(grid_x, grid_y)
 
-	# STEP6 Evaluate stopping condition
-	if (epsilon_max < epsilon_thr):
-		break
+	# Other constants
+	c1 = 1
+	c2 = 0.1
+	m = 1
+	r = 0.5
+	t = 1
+	F = 1
 
-	# log critical region for visualization
-	if len(subset_pop)>0:
-		subset_samples.append(subset_pop)
-	else:
-		# subset empty, no more candidates left
-		break
+	# [c1, c2, r, m]
+	variables = np.array([0.9, 0.09, 0.95, 0.45])
+	step = np.array([0.1, 0.01, 0.05, 0.05]) * 0.05
+	path = [variables]
+	for i in range(40):
+		path.append(path[-1]+step)
 
-	# STEP5 Compute learning function on the population and identify best point
-	# If using U(x), G(x)-U(x)sigma(x)=0, and we want to find argmin x
-	#candidates = U.acquire(subset_pop, DOE_input, DOE_output, subset_mean, subset_var, 4)
-	candidates = evaluator.obtain_batch(subset_pop, subset_mean, subset_var, DOE_input, DOE_output, batch_size)
-	print("iter (%i), batch size %i" % (i, len(candidates)))
-	print("--"*25)
+	frames = []
+	for i in range(len(path)):
+		frames.append(get_g_grid(N_GRID, grid_x, grid_y, path[i]))
+	frames = np.array(frames)
+	max_g = np.max(frames)
+	min_g = np.min(frames)
+	cmap = cm.get_cmap("jet")
+	sm = cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=min_g, vmax=max_g))
+	sm.set_array([])
 
-	for candidate in candidates:
-		print("Selected", candidate["next"])
-		print("Score : %.3f | Mean : %.4g | Var : %.4g" % (
-			candidate["utility"],
-			candidate["mean"],
-			candidate["variance"]))
-		# STEP7 Update DOE model
-		DOE_input = np.append(DOE_input, [candidate["next"]], axis=0)
-		DOE_output = np.append(DOE_output, G(candidate["next"]))
-	print("--"*25)
-
-# TODO: 9,10 for when one MC population is not enough
-
-# STEP8: Compute coefficient of variation of the probability of failure
-final_kriging_model = kriging_model
-z, ss = final_kriging_model.execute(points)
-num_negative_predictions = np.sum(z < 0)
-P_f = np.maximum(num_negative_predictions / N_MC, 0.0001)
-cov_fail = np.sqrt((1-P_f)/(P_f*N_MC))
-
-N_true_f = 0
-for i in range(N_MC):
-	if G(points[i]) < 0:
-		N_true_f += 1
-
-print(f"True probability of failure: {N_true_f/N_MC:.3g}")
-print(f"Estimated probability of failure: {P_f:.3g}")
-print(f"COV of probability of failure: {cov_fail:.3g}")
-
-#exit()
-
-if not np.shape(DOE_input)[1] == 2:
-	exit()
-############################################################
-# subset sample evolution
-if len(subset_samples) > 0:
 	fig, ax = plt.subplots()
-	artists = []
-	for i in range(len(subset_samples)):
-		samples = np.array(subset_samples[i]).T
-		sample_plot = ax.scatter(samples[0],samples[1], c="blue", s=2)
-		doe_range_l = N_INIT+i*batch_size
-		doe_range_u = N_INIT+(i+1)*batch_size
-		selection = DOE_input[doe_range_l:doe_range_u].T
-		selection_plot = ax.scatter(selection[0], selection[1],c="red",s=4)
-		txt = ax.text(0.05,0.05, str(i), ha="right", va="bottom", transform=fig.transFigure)
-		artists.append([sample_plot, selection_plot, txt])
-	ani = animation.ArtistAnimation(fig=fig, artists=artists, interval=8000/len(subset_samples))
+	def animatef(i):
+		ax.clear()
+		ax.contourf(grid_x, grid_y, frames[i], levels=100, cmap=cmap)
+		ax.contour(grid_x, grid_y, frames[i], levels=[0], colors='black', linewidths=2)
+		ax.set_title("c1=%.3g, c2=%.3g, m=%.3g, r=%.3g"%tuple(path[i]))
+
+	ani = animation.FuncAnimation(fig, animatef, 40, interval=200, blit=False)
+	fig.supxlabel("t")
+	fig.supylabel("F")
+	fig.colorbar(sm)
 	plt.show()
 
+	#animate(grid_x, grid_y, frames)
 
-############################################################
-# Visualization
-# Density of grid for visualization
-N_GRID = 400
-grid_x = np.linspace(-5, 5, N_GRID)
-grid_y = np.linspace(-5, 5, N_GRID)
-xpts, ypts = np.meshgrid(grid_x, grid_y)
-pts = np.dstack((xpts.ravel(), ypts.ravel()))
-z, ss = final_kriging_model.execute(pts)
-z = z.reshape((N_GRID,N_GRID))
+def get_g_grid(size, grid_x, grid_y, path_pt):
+	g_grid = np.zeros((size, size))
+	for i in range(size):
+		for j in range(size):
+			t = grid_x[i]
+			F = grid_y[j]
 
-plt.figure()
-contours = plt.contourf(grid_x, grid_y, z, levels=100, cmap='jet')
+			c1, c2, m, r = path_pt
+			w_0 = np.sqrt((c1+c2)/m)
+			val = 2*F*np.sin(w_0*t*0.5)/(m*w_0**2)
+			g_grid[i,j] = 3*r-abs(val)
+	return g_grid
 
-plt.colorbar(label='Value')
-plt.xlabel('X1-coordinate')
-plt.ylabel('X2-coordinate')
-plt.title('Kriging Interpolation')
+def animate(grid_x, grid_y, frames):
+	fig, ax = plt.subplots()
+	artists = []
+	for i in range(len(frames)):
+		cmap = ax.contourf(grid_x, grid_y, frames[i], levels=100, cmap='jet')
+		#ls = ax.contour(grid_x, grid_y, frames[i], levels=[0], colors='black', linewidths=2)
+		artists.append(cmap)
+	ani = animation.ArtistAnimation(fig=fig, artists=artists, interval=200)
 
-# Level 0, the estimate of the limit state by the kriging model
-contours = plt.contour(grid_x, grid_y, z, levels=[0], colors='r', linewidths=2)
 
-# Plot the points queried
-plt.scatter(DOE_input[:, 0], DOE_input[:, 1], s=2, c='black', label='Data')
-# Label the points queried with their actual value
-#for x1, x2, h in DOE:
-#    plt.text(x1, x2, f'{h:.2f}', fontsize=8, color='white', ha='center', va='center')
-
-# Kriging model contour
-plt.contour(grid_x, grid_y, z, colors='white', linewidths=1, linestyles='dashed', alpha=0.5)
-
-# Color bar and legends
-plt.colorbar(label='Value')
-plt.legend()
-
-# Mesh
-x1_grid, x2_grid = np.meshgrid(grid_x, grid_y)
-
-# Query G on the grid
-G_values = np.zeros((N_GRID, N_GRID))
-for i in range(len(grid_x)):
-	for j in range(len(grid_y)):
-		G_values[i,j] = G([grid_x[i], grid_y[j]])
-
-# Actual limit state i.e. G(x1, x2)=0
-contours = plt.contour(x1_grid, x2_grid, G_values, levels=[0], colors='b', linestyles='dashed')
-
-plt.show()
-
-ani.save("G_Ras.gif")
+if __name__ == "__main__":
+	visualize(1, 0.2, 1, 0.2)

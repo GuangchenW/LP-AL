@@ -12,10 +12,10 @@ class G_Oscillator(BaseObjectiveFunction):
 		return 3*x[3]-abs(val)
 
 	def data_definition(self):
-		m = np.random.normal(1, 0.05)
 		c1 = np.random.normal(1, 0.1)
 		c2 = np.random.normal(0.1, 0.01)
+		m = np.random.normal(1, 0.05)
 		r = np.random.normal(0.5, 0.05)
-		F1 = np.random.normal(1, 0.2)
-		t1 = np.random.normal(1, 0.2)
-		return [c1,c2,m,r,t1,F1]
+		t = np.random.normal(1, 0.2)
+		F = np.random.normal(1, 0.2)
+		return [c1,c2,m,r,t,F]

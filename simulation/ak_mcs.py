@@ -135,6 +135,7 @@ class AKMCS:
 			for i in range(N_MC):
 				if self.obj_func.evaluate(self.input_space[i], True) < 0:
 					N_true_f += 1
+				print("MCS progress [%d/1000000]\r" % i, end="")
 			true_P_f = N_true_f/N_MC
 			self.logger.log(f"True probability of failure: {true_P_f:.6g}")
 

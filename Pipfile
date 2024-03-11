@@ -8,6 +8,8 @@ pykrige = "*"
 torch = "*"
 gpytorch = "*"
 pydacefit = "*"
+wakepy = "*"
+oct2py = "*"
 
 [dev-packages]
 

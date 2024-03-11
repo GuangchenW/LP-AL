@@ -1,19 +1,20 @@
 from .objective_function import BaseObjectiveFunction
 
+import os
 import numpy as np
+from oct2py import octave
 
 class G_FEM(BaseObjectiveFunction):
 	def __init__(self):
 		super().__init__(name="FEM", dim=6)
+		octave.addpath(os.path.dirname(os.path.realpath(__file__)))
 
 	def _evaluate(self, x):
 	    P1,P2,P3,L,A,E = x
-	    print("0:%f:%f,[0,%f]"%(L,L*2,L))
-	    print("2 0 %f" % -P1)
-	    print("3 %f %f" % (P2,-P3))
-	    response = input("Enter y-displacement of node 3: ")
+	    # The E here is in kPa, so we need to apply a factor of 1000.
+	    response = octave.eval("Truss2DBare(%f,%f,%f,%f,%f,%f)"%(P1, P2, P3, L, A, E*1000), verbose=False)
 
-	    return 3.6-float(response)
+	    return 3.6+response
 
 	def data_definition(self):
 		P1 = np.random.normal(80, 4)
