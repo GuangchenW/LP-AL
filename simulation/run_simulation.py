@@ -22,11 +22,12 @@ def get_test_takers(batch_size=1):
 
 def get_test_suite():
 	#return [G_4B(), G_Ras(), G_Beam(), G_Axle(), G_Oscillator(), G_Tube(), G_High_Dim()]
-	return [G_Oscillator(), G_Tube()]
+	#return [G_Oscillator(), G_Tube()]
+	return [G_FEM()]
 
 def run_test_single():
 	taker = AKMCS(acq_func=U(), batch_size=8)
-	test = G_FEM()
+	test = G_4B()
 	taker.initialize_input(test, sample_size=10**5, num_init=nearest_init_num(test.dim), silent=False)
 	result = taker.kriging_estimate(do_mcs=True)
 	print(result)
@@ -48,7 +49,7 @@ def run_test_suite(idx):
 		for taker in takers:
 			for test in tests:
 				taker.initialize_input(test, sample_size=10**5, num_init=nearest_init_num(test.dim), rng=seed, silent=True)
-				result = taker.kriging_estimate(do_mcs=True)
+				result = taker.kriging_estimate(do_mcs=False)
 				line = "%s,%f,%s,%d,%f,%f,%f\n" % (result["system"], result["Pf"], result["name"], result["iter"], result["Pfe"], result["COV"], result["re"])
 				print(line)
 				file.write(line)
@@ -61,6 +62,6 @@ if __name__ == "__main__":
 		run_test_single()
 	else:
 		with keep.running() as k:
-			for i in range(40):
+			for i in range(10):
 				run_test_suite(i)
 

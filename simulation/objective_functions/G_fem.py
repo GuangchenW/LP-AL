@@ -7,6 +7,7 @@ from oct2py import octave
 class G_FEM(BaseObjectiveFunction):
 	def __init__(self):
 		super().__init__(name="FEM", dim=6)
+		self.failure_probability = 14794/1000000
 		octave.addpath(os.path.dirname(os.path.realpath(__file__)))
 
 	def _evaluate(self, x):

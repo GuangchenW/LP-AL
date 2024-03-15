@@ -7,6 +7,7 @@ class BaseObjectiveFunction(ABC):
 	def __init__(self, name, dim):
 		self.name = name
 		self.dim = dim
+		self.failure_probability = -1
 		self.mcp_manager = MCP_Manager()
 		if not self.mcp_manager.data_exists(self.name):
 			print("Monte-Carlo population does not exist, generating...")

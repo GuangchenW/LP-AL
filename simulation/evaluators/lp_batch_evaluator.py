@@ -26,7 +26,7 @@ class LP_Batch(BaseEvaluator):
 	):
 		batch = []
 		utilities = self.acq_func.acquire(subset_points, mean, variance, doe_input, doe_response)
-		utilities += 1e-10 # To prevent log0 undefined
+		utilities = self.soft_plus_transform(utilities)
 		utilities = np.log(utilities)
 
 		# TEST HACK
@@ -52,6 +52,9 @@ class LP_Batch(BaseEvaluator):
 			#print(m,v)
 
 		return np.array(batch)
+
+	def soft_plus_transform(self, x):
+		return np.log(1+np.exp(x))
 
 	def apply_hammer(self, candidates, batch, utilities):
 		hammered_util = []

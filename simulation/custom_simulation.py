@@ -26,9 +26,9 @@ def visualize(x_mean, x_std, y_mean, y_std):
 	t = 1
 	F = 1
 
-	# [c1, c2, r, m]
-	variables = np.array([0.9, 0.09, 0.95, 0.45])
-	step = np.array([0.1, 0.01, 0.05, 0.05]) * 0.05
+	# [m, r, t, F]
+	variables = np.array([0.95, 0.45, 0.8, 0.8])
+	step = np.array([0.05, 0.05, 0.2, 0.2]) * 0.05
 	path = [variables]
 	for i in range(40):
 		path.append(path[-1]+step)
@@ -40,21 +40,23 @@ def visualize(x_mean, x_std, y_mean, y_std):
 	max_g = np.max(frames)
 	min_g = np.min(frames)
 	cmap = cm.get_cmap("jet")
-	sm = cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=min_g, vmax=max_g))
+	norm = plt.Normalize(min_g, max_g)
+	sm = cm.ScalarMappable(cmap=cmap, norm=norm)
 	sm.set_array([])
 
 	fig, ax = plt.subplots()
 	def animatef(i):
 		ax.clear()
-		ax.contourf(grid_x, grid_y, frames[i], levels=100, cmap=cmap)
+		ax.contourf(grid_x, grid_y, frames[i], levels=20, cmap=cmap, norm=norm)
 		ax.contour(grid_x, grid_y, frames[i], levels=[0], colors='black', linewidths=2)
-		ax.set_title("c1=%.3g, c2=%.3g, m=%.3g, r=%.3g"%tuple(path[i]))
+		ax.set_title("m=%.3g, r=%.3g, t=%.3g, F=%.3g"%tuple(path[i]))
 
 	ani = animation.FuncAnimation(fig, animatef, 40, interval=200, blit=False)
-	fig.supxlabel("t")
-	fig.supylabel("F")
+	fig.supxlabel("c1")
+	fig.supylabel("c2")
 	fig.colorbar(sm)
 	plt.show()
+	ani.save("grand_tour_osc.gif")
 
 	#animate(grid_x, grid_y, frames)
 
@@ -62,10 +64,10 @@ def get_g_grid(size, grid_x, grid_y, path_pt):
 	g_grid = np.zeros((size, size))
 	for i in range(size):
 		for j in range(size):
-			t = grid_x[i]
-			F = grid_y[j]
+			c1 = grid_x[i]
+			c2 = grid_y[j]
 
-			c1, c2, m, r = path_pt
+			m, r, t, F = path_pt
 			w_0 = np.sqrt((c1+c2)/m)
 			val = 2*F*np.sin(w_0*t*0.5)/(m*w_0**2)
 			g_grid[i,j] = 3*r-abs(val)
@@ -82,4 +84,4 @@ def animate(grid_x, grid_y, frames):
 
 
 if __name__ == "__main__":
-	visualize(1, 0.2, 1, 0.2)
+	visualize(1, 0.1, 0.1, 0.01)

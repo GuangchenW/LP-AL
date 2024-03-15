@@ -123,35 +123,38 @@ class AKMCS:
 
 	def compute_failure_probability(self, do_mcs):
 		# STEP8: Compute coefficient of variation of the probability of failure
-		N_MC = self.input_space.shape[0]
+		N_MCS = self.input_space.shape[0]
 		z, ss = self.model.execute(self.input_space)
 		num_negative_predictions = np.sum(z <= 0)
-		P_f = num_negative_predictions / N_MC
-		cov_fail = np.sqrt((1-P_f)/(P_f*N_MC))
+		est_P_f = num_negative_predictions / N_MCS
+		cov_fail = np.sqrt((1-est_P_f)/(est_P_f*N_MCS))
+		
 		# TODO: Clean this up
-		true_P_f = float("nan")
+		MCS_P_f = float("nan")
 		if do_mcs:
-			N_true_f = 0
-			for i in range(N_MC):
+			MCS_N_f = 0
+			for i in range(N_MCS):
 				if self.obj_func.evaluate(self.input_space[i], True) < 0:
-					N_true_f += 1
+					MCS_N_f += 1
 				print("MCS progress [%d/1000000]\r" % i, end="")
-			true_P_f = N_true_f/N_MC
-			self.logger.log(f"True probability of failure: {true_P_f:.6g}")
+			MCS_P_f = MCS_N_f/N_MCS
+		else:
+			if self.obj_func.failure_probability > 0:
+				MCS_P_f = self.obj_func.failure_probability
 
-		self.logger.log(f"Estimated probability of failure: {P_f:.6g}")
+		self.logger.log(f"True probability of failure: {MCS_P_f:.6g}")
+		self.logger.log(f"Estimated probability of failure: {est_P_f:.6g}")
 		self.logger.log(f"COV of probability of failure: {cov_fail:.6g}")
 		self.logger.clean_up()
 		return {
 			"system": self.obj_func.name,
-			"Pf":  true_P_f,
+			"Pf":  MCS_P_f,
 			"name": self.acq_func.name,
-			"Pfe": P_f,
+			"Pfe": est_P_f,
 			"COV": cov_fail,
-			"re": abs(true_P_f-P_f)/true_P_f
+			"re": abs(MCS_P_f-est_P_f)/MCS_P_f
 		}
 
-	#TODO
 	def visualize(self):
 		if not self.doe_input.shape[1] == 2:
 			return
@@ -197,9 +200,6 @@ class AKMCS:
 
 		# Plot the points queried
 		plt.scatter(self.doe_input[:, 0], self.doe_input[:, 1], s=2, c='black', label='Data')
-		# Label the points queried with their actual value
-		#for x1, x2, h in DOE:
-		#    plt.text(x1, x2, f'{h:.2f}', fontsize=8, color='white', ha='center', va='center')
 
 		# Kriging model contour
 		plt.contour(grid_x, grid_y, z, colors='white', linewidths=1, linestyles='dashed', alpha=0.5)
@@ -222,4 +222,4 @@ class AKMCS:
 
 		plt.show()
 
-		ani.save("G_Ras.gif")
+		ani.save("sample_selections.gif")
