@@ -34,12 +34,6 @@ class EFF(BaseAcquisitionFunction):
 		var = variance
 		std = np.sqrt(var)
 
-		# HACK? disregard candidates with low variance as it likely
-		# won't provide a lot of information.
-		# Also avoids division by zero stuff.
-		#if std < 0.05:
-		#	return math.inf
-
 		epsilon = 2*std
 		cprob = stats.norm.cdf(-mu/std)
 		cprob_low = stats.norm.cdf((-epsilon-mu)/std)
@@ -52,7 +46,7 @@ class EFF(BaseAcquisitionFunction):
 		prob_high = stats.norm.pdf((epsilon-mu)/std)
 		
 		term2=std*(2*prob-prob_low-prob_high)
-		term3=cprob_high-cprob_low
+		term3=epsilon*(cprob_high-cprob_low)
 
 		eff = term1-term2+term3
 

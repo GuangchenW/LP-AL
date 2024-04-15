@@ -59,14 +59,14 @@ class LP_Batch(BaseEvaluator):
 	def apply_hammer(self, candidates, batch, utilities):
 		hammered_util = []
 		for i in range(len(candidates)):
-			hammer = self.log_hammer_func(candidates[i], batch["next"], batch["mean"])
+			hammer = self.log_hammer_func(candidates[i], batch["next"], batch["variance"], batch["mean"])
 			util = utilities[i] + hammer
 			hammered_util.append(util)
 		return np.array(hammered_util)
 
-	def log_hammer_func(self, candidate, center, offset):
+	def log_hammer_func(self, candidate, center, variance, offset):
 		dist = np.linalg.norm(center-candidate)
-		z = self.L*dist-abs(offset)
+		z = (self.L*dist-abs(offset))/np.sqrt(2*variance)
 		phi = 0.5*math.erfc(-z)
 		phi = max(sys.float_info.min, phi) # Prevent cases where erfc evaluates to 0
 		return np.log(phi)

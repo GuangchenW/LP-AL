@@ -11,7 +11,7 @@ class BaseObjectiveFunction(ABC):
 		self.mcp_manager = MCP_Manager()
 		if not self.mcp_manager.data_exists(self.name):
 			print("Monte-Carlo population does not exist, generating...")
-			self.mcp_manager.generate_data(self.name, self.data_definition, min(10**6, 10**(dim+2)))
+			self.mcp_manager.generate_data(self.name, self.data_definition, min(10**6, 10**(dim+3)))
 
 	def evaluate(self, x, denormalize=False):
 		if denormalize:
@@ -36,4 +36,8 @@ class BaseObjectiveFunction(ABC):
 
 	@abstractmethod
 	def data_definition(self):
+		pass
+
+	@abstractmethod
+	def logpdf(self, x):
 		pass

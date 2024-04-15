@@ -1,11 +1,13 @@
 from .objective_function import BaseObjectiveFunction
 
 import numpy as np
+from scipy.stats import norm
 
 class G_4B(BaseObjectiveFunction):
-	def __init__(self, k=7):
+	def __init__(self):
 		super().__init__(name="4B", dim=2)
-		self.k = k
+		self.k = 7
+		self.failure_probability = 0.00221
 
 	def _evaluate(self, x):
 		x1=x[0]
@@ -21,3 +23,10 @@ class G_4B(BaseObjectiveFunction):
 		x2 = np.random.normal(0, 1)
 
 		return [x1, x2]
+
+	def logpdf(self, x):
+		x1, x2 = x
+		prob = norm.logpdf(x1, 0, 1)
+		prob += norm.logpdf(x2, 0, 1)
+
+		return prob

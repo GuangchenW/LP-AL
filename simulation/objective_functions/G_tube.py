@@ -1,10 +1,12 @@
 from .objective_function import BaseObjectiveFunction
 
 import numpy as np
+from scipy.stats import norm, gumbel_r, uniform
 
 class G_Tube(BaseObjectiveFunction):
 	def __init__(self):
 		super().__init__(name="cantilever_tube", dim=9)
+		self.failure_probability = 0.018880
 
 	def _evaluate(self, x):
 	    t,d,L1,L2,F1,F2,P,T,S_y = x
@@ -33,3 +35,17 @@ class G_Tube(BaseObjectiveFunction):
 		T = np.random.normal(90000, 9000)
 		S_y = np.random.normal(220, 22)
 		return [t,d,L1,L2,F1,F2,P,T,S_y]
+
+	def logpdf(self, x):
+		t,d,L1,L2,F1,F2,P,T,S_y = self.denormalize_data(x)
+		prob = norm.logpdf(t, 5, 0.1)
+		prob += norm.logpdf(d, 42, 0.5)
+		prob += uniform.logpdf(L1, 119.75, 120.25) # For clarity
+		prob += uniform.logpdf(L2, 59.75, 60.25) # Could use precomputed constants if too slow
+		prob += norm.logpdf(F1, 3000, 300)
+		prob += norm.logpdf(F2, 3000, 300)
+		prob += gumbel_r.logpdf(P, 30000, 3000)
+		prob += norm.logpdf(T, 90000, 9000)
+		prob += norm.logpdf(S_y, 220, 22)
+
+		return prob

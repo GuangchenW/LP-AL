@@ -5,6 +5,7 @@ import numpy as np
 class G_Oscillator(BaseObjectiveFunction):
 	def __init__(self):
 		super().__init__(name="nonlinear_oscillator", dim=6)
+		self.failure_probability = 0.028650
 
 	def _evaluate(self, x):
 		w_0 = np.sqrt((x[0]+x[1])/x[2])

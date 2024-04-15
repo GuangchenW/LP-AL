@@ -1,6 +1,7 @@
 from .objective_function import BaseObjectiveFunction
 
 import numpy as np
+from scipy.stats import norm
 
 class G_Ras(BaseObjectiveFunction):
 	def __init__(self, d=5):
@@ -21,3 +22,10 @@ class G_Ras(BaseObjectiveFunction):
 		x2 = np.random.normal(0, 1)
 
 		return [x1, x2]
+
+	def logpdf(self, x):
+		x1, x2 = x
+		prob = norm.logpdf(x1, 0, 1)
+		prob += norm.logpdf(x2, 0, 1)
+
+		return prob
