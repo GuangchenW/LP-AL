@@ -1,6 +1,7 @@
 from .objective_function import BaseObjectiveFunction
 
 import numpy as np
+from scipy.stats import norm, gumbel_r, uniform
 
 class G_Oscillator(BaseObjectiveFunction):
 	def __init__(self):
@@ -20,3 +21,14 @@ class G_Oscillator(BaseObjectiveFunction):
 		t = np.random.normal(1, 0.2)
 		F = np.random.normal(1, 0.2)
 		return [c1,c2,m,r,t,F]
+
+	def logpdf(self, x):
+		c1,c2,m,r,t,F = self.denormalize_data(x)
+		prob = norm.logpdf(c1, 1, 0.1)
+		prob += norm.logpdf(c2, 0.1, 0.01)
+		prob += norm.logpdf(m, 1, 0.05)
+		prob += norm.logpdf(r, 0.5, 0.05)
+		prob += norm.logpdf(t, 1, 0.2)
+		prob += norm.logpdf(F, 1, 0.2)
+
+		return prob

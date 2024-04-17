@@ -54,7 +54,10 @@ class LP_Batch(BaseEvaluator):
 		return np.array(batch)
 
 	def soft_plus_transform(self, x):
-		return np.log(1+np.exp(x))
+		# With numpy 80 bits precision, for x > 100 the soft-plus transform doesn't do anything 
+		# and may even fail due to large numbers. The soft-plus transform is mostly for dealing with 0
+		# so this workaround should be fine, 
+		return np.array([np.log(1+np.exp(_x)) if _x < 100 else _x for _x in x])
 
 	def apply_hammer(self, candidates, batch, utilities):
 		hammered_util = []

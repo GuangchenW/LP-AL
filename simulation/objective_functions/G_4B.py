@@ -25,7 +25,7 @@ class G_4B(BaseObjectiveFunction):
 		return [x1, x2]
 
 	def logpdf(self, x):
-		x1, x2 = x
+		x1, x2 = self.denormalize_data(x)
 		prob = norm.logpdf(x1, 0, 1)
 		prob += norm.logpdf(x2, 0, 1)
 

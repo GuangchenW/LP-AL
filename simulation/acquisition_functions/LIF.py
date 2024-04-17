@@ -45,6 +45,8 @@ class LIF(BaseAcquisitionFunction):
 		else:
 			for m in range(M):
 				l = self.odd_sum_term(M, m, mean, variance)
+				#if l > 1e40:
+				#	print(l)
 				sum_term += l
 			sum_term *= np.sqrt(2/np.pi)
 

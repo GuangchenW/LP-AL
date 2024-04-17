@@ -4,9 +4,10 @@ import numpy as np
 from scipy.stats import norm
 
 class G_Ras(BaseObjectiveFunction):
-	def __init__(self, d=5):
+	def __init__(self):
 		super().__init__(name="modified_rastrigin", dim=2)
-		self.d = d
+		self.d = 5
+		self.failure_probability = 0.29261
 
 	def _evaluate(self, x):
 		x1=x[0]
@@ -24,7 +25,7 @@ class G_Ras(BaseObjectiveFunction):
 		return [x1, x2]
 
 	def logpdf(self, x):
-		x1, x2 = x
+		x1, x2 = self.denormalize_data(x)
 		prob = norm.logpdf(x1, 0, 1)
 		prob += norm.logpdf(x2, 0, 1)
 

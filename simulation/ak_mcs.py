@@ -65,13 +65,15 @@ class AKMCS:
 		return result
 
 	def kriging_step(self, iter_count):
-		# STEP3 Compute Kriging model
+		# Construct Kriging model
 		self.model.train(self.doe_input, self.doe_response)
+
 		# Acquire all estimations
 		mean, variance, grad = self.model.execute(self.kriging_sample, with_grad=True)
+		
 		# Compute max norm of expected gradient
-		max_grad = np.max(np.linalg.norm(grad, axis=1))
-		max_grad = max(0.25, max_grad)
+		# max_grad = np.max(np.linalg.norm(grad, axis=1))
+		# max_grad = max(0.25, max_grad)
 
 		# Compute stopping criterion
 		epsilon_max, should_stop = self.stopper(mean, variance)
@@ -101,9 +103,8 @@ class AKMCS:
 
 		self.logger.log("Subset size: %d" % len(subset_pop))
 
-		# STEP5 Compute learning function on the population and identify best point
+		# Feed the reduced candidate sample pool to evaluator and get batch
 		self.evaluator.set_grad(grad)
-		#self.evaluator.set_L(max_grad)
 		batch = self.evaluator.obtain_batch(
 			subset_pop, 
 			subset_mean, 
@@ -112,7 +113,7 @@ class AKMCS:
 			self.doe_response, 
 			self.batch_size)
 
-		# STEP6 Update doe with batch
+		# Update doe with batch
 		for candidate in batch:
 			self.doe_input = np.append(self.doe_input, [candidate["next"]], axis=0)
 			self.doe_response = np.append(
