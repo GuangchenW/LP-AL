@@ -1,87 +1,101 @@
 from objective_functions import G_Oscillator
 
+import math, sys
+
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import matplotlib.cm as cm
 
+from objective_functions import G_4B, G_Ras, G_Oscillator, G_Tube
+from models import OrdinaryKriging
+from acquisition_functions import U, EFF
 
-def visualize(x_mean, x_std, y_mean, y_std):
-	# Visualization
-	# Density of grid for visualization
-	N_GRID = 400
-	grid_x = np.linspace(x_mean-4*x_std, x_mean+4*x_std, N_GRID)
-	grid_y = np.linspace(y_mean-4*y_std, y_mean+4*y_std, N_GRID)
-	xpts, ypts = np.meshgrid(grid_x, grid_y)
-	pts = np.dstack((xpts.ravel(), ypts.ravel()))
+def example_func(x):
+	return np.sum(np.sin(x-1)+np.sin(3*x-3)+1, axis=1)
 
-	# Mesh
-	x1_grid, x2_grid = np.meshgrid(grid_x, grid_y)
+def example_func2(x):
+	return np.sum(np.cos(2*x)+np.sin(x+1), axis=1)
 
-	# Other constants
-	c1 = 1
-	c2 = 0.1
-	m = 1
-	r = 0.5
-	t = 1
-	F = 1
+def calc_U(mean, variance):
+	if variance < 1e-7:
+		return 0
+	else:
+		return abs(mean)/np.sqrt(variance)
 
-	# [m, r, t, F]
-	variables = np.array([0.95, 0.45, 0.8, 0.8])
-	step = np.array([0.05, 0.05, 0.2, 0.2]) * 0.05
-	path = [variables]
-	for i in range(40):
-		path.append(path[-1]+step)
 
-	frames = []
-	for i in range(len(path)):
-		frames.append(get_g_grid(N_GRID, grid_x, grid_y, path[i]))
-	frames = np.array(frames)
-	max_g = np.max(frames)
-	min_g = np.min(frames)
-	cmap = cm.get_cmap("jet")
-	norm = plt.Normalize(min_g, max_g)
-	sm = cm.ScalarMappable(cmap=cmap, norm=norm)
-	sm.set_array([])
+def apply_hammer(candidates, center, center_mean, center_variance, L, utilities):
+	hammered_util = []
+	L = max(0.25, L)
+	for i in range(len(candidates)):
+		hammer = hammer_func(candidates[i], center, center_variance, center_mean, L)
+		util = utilities[i] * hammer
+		hammered_util.append(util)
+	return np.array(hammered_util)
 
-	fig, ax = plt.subplots()
-	def animatef(i):
-		ax.clear()
-		ax.contourf(grid_x, grid_y, frames[i], levels=20, cmap=cmap, norm=norm)
-		ax.contour(grid_x, grid_y, frames[i], levels=[0], colors='black', linewidths=2)
-		ax.set_title("m=%.3g, r=%.3g, t=%.3g, F=%.3g"%tuple(path[i]))
+def hammer_func(candidate, center, variance, offset, L):
+	dist = np.linalg.norm(center-candidate)
+	z = (L*dist-abs(offset))/np.sqrt(2*variance)
+	phi = 0.5*math.erfc(-z)
+	phi = max(sys.float_info.min, phi) # Prevent cases where erfc evaluates to 0
+	return phi
 
-	ani = animation.FuncAnimation(fig, animatef, 40, interval=200, blit=False)
-	fig.supxlabel("c1")
-	fig.supylabel("c2")
-	fig.colorbar(sm)
-	plt.show()
-	ani.save("grand_tour_osc.gif")
-
-	#animate(grid_x, grid_y, frames)
-
-def get_g_grid(size, grid_x, grid_y, path_pt):
-	g_grid = np.zeros((size, size))
-	for i in range(size):
-		for j in range(size):
-			c1 = grid_x[i]
-			c2 = grid_y[j]
-
-			m, r, t, F = path_pt
-			w_0 = np.sqrt((c1+c2)/m)
-			val = 2*F*np.sin(w_0*t*0.5)/(m*w_0**2)
-			g_grid[i,j] = 3*r-abs(val)
-	return g_grid
-
-def animate(grid_x, grid_y, frames):
-	fig, ax = plt.subplots()
-	artists = []
-	for i in range(len(frames)):
-		cmap = ax.contourf(grid_x, grid_y, frames[i], levels=100, cmap='jet')
-		#ls = ax.contour(grid_x, grid_y, frames[i], levels=[0], colors='black', linewidths=2)
-		artists.append(cmap)
-	ani = animation.ArtistAnimation(fig=fig, artists=artists, interval=200)
-
+def soft_plus_transform(x):
+		return np.array([np.log(1+np.exp(_x)) if _x < 100 else _x for _x in x])
 
 if __name__ == "__main__":
-	visualize(1, 0.1, 0.1, 0.01)
+	matplotlib.rcParams["mathtext.fontset"]="cm"
+	model = OrdinaryKriging(n_dim=1)
+	x = np.linspace(-3, 3, 600)[:,None]
+	np.random.seed(22)
+	test_inputs = np.random.uniform(-3, 3, (6,1))
+	test_outputs = example_func(test_inputs)
+
+	model.train(test_inputs, test_outputs)
+
+	mean, variance, grad = model.execute(x, with_grad=True)
+
+	acq_func = EFF()
+	util = acq_func.acquire(x, mean, variance, test_inputs, test_outputs)
+	new_util = util
+
+	x = x.flatten()
+	idx = np.nanargmax(new_util)
+
+	fig, ax = plt.subplots()
+	prev_score = "\\alpha(x;\\mathcal{B}_0)"
+	ax.plot(x, mean, alpha=0.4, label="$\\hat{f}(x)$")
+	ax.fill_between(x, mean-variance, mean+variance, alpha=0.1)
+	ax.plot(x, new_util, color="red", label="$%s$"%prev_score)
+	ax.plot(x[idx], new_util[idx], "*", markersize=10)
+	ax.legend(fontsize="large", loc=2)
+	plt.show()
+
+	for i in range(2):
+
+		fig, (ax1, ax2) = plt.subplots(2, 1, gridspec_kw={"height_ratios":[1,2]})
+
+		hammer = np.array([hammer_func(c, x[idx], variance[idx], mean[idx], abs(grad[idx][0])) for c in x])
+		penalty_name = "\\psi(x;x_{1,%d})"%(i+1)
+		ax1.plot(x, hammer, color="green", label="$%s$"%penalty_name)
+		ax1.legend(fontsize="large", loc=4)
+		ax1.set_ylabel("value")
+
+		ax2.plot(x, mean, alpha=0.4, label="$\\hat{f}(x)$")
+		ax2.fill_between(x, mean-variance, mean+variance, alpha=0.1)
+		# Previous utility
+		# ax2.plot(x, new_util, color="red", label="$%s$"%prev_score, ls="--")
+		# Apply penalty
+		new_util = apply_hammer(x, x[idx], mean[idx], variance[idx], np.absolute(grad).max(), new_util)
+		prev_score = prev_score+penalty_name
+		ax2.plot(x, new_util, color="red", label="$%s$"%prev_score)
+
+		idx = np.nanargmax(new_util)
+		ax2.plot(x[idx], new_util[idx], "*", markersize=10)
+
+		ax2.legend(fontsize="large", loc=2)
+		ax2.set_xlabel("$x$")
+		ax2.set_ylabel("value")
+
+		plt.show()

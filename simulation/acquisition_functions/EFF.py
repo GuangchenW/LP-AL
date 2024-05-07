@@ -1,6 +1,6 @@
 import math
 import numpy as np
-from scipy import stats
+from scipy.stats import norm
 from .acquisition_function import BaseAcquisitionFunction
 
 class EFF(BaseAcquisitionFunction):
@@ -15,7 +15,7 @@ class EFF(BaseAcquisitionFunction):
 		doe_input,
 		doe_response,
 	):
-		acq = np.array([self._NEFF(pnt, mu, var) for pnt, mu, var in zip(subset_points, mean, variance)])
+		acq = np.array([self._EFF(mu, var) for mu, var in zip(mean, variance)])
 		
 		# Up-shift the acquisiton values so min(acq(x))>=0.
 		# This is done so it can be scaled with penalties for batching.
@@ -25,8 +25,7 @@ class EFF(BaseAcquisitionFunction):
 
 		return acq
 
-
-	def _NEFF(self, candidate, mean, variance):
+	def _EFF(self, mean, variance):
 		if variance < 1e-10:
 			return float("nan")
 
@@ -35,15 +34,15 @@ class EFF(BaseAcquisitionFunction):
 		std = np.sqrt(var)
 
 		epsilon = 2*std
-		cprob = stats.norm.cdf(-mu/std)
-		cprob_low = stats.norm.cdf((-epsilon-mu)/std)
-		cprob_high = stats.norm.cdf((epsilon-mu)/std)
+		cprob = norm.cdf(-mu/std)
+		cprob_low = norm.cdf((-epsilon-mu)/std)
+		cprob_high = norm.cdf((epsilon-mu)/std)
 
 		term1=mu*(2*cprob-cprob_low-cprob_high)
 
-		prob = stats.norm.pdf(-mu/std)
-		prob_low = stats.norm.pdf((-epsilon-mu)/std)
-		prob_high = stats.norm.pdf((epsilon-mu)/std)
+		prob = norm.pdf(-mu/std)
+		prob_low = norm.pdf((-epsilon-mu)/std)
+		prob_high = norm.pdf((epsilon-mu)/std)
 		
 		term2=std*(2*prob-prob_low-prob_high)
 		term3=epsilon*(cprob_high-cprob_low)

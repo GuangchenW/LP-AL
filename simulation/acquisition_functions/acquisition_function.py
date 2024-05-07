@@ -5,6 +5,13 @@ class BaseAcquisitionFunction(ABC):
 		self.name = name
 		self.device = device
 		self.logger = logger
+		if device.lower()=="cpu":
+			self.use_gpu = False
+		elif device.lower()=="gpu":
+			self.use_gpu = True
+		else:
+			print("Unknown device, using CPU.")
+			self.use_gpu = False
 
 	@abstractmethod
 	def acquire(

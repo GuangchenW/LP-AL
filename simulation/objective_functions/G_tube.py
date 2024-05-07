@@ -6,7 +6,7 @@ from scipy.stats import norm, gumbel_r, uniform
 class G_Tube(BaseObjectiveFunction):
 	def __init__(self):
 		super().__init__(name="cantilever_tube", dim=9)
-		self.failure_probability = 0.018880
+		self.failure_probability = 0.018787
 
 	def _evaluate(self, x):
 	    t,d,L1,L2,F1,F2,P,T,S_y = x

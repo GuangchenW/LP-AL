@@ -4,6 +4,7 @@ class BaseEvaluator(ABC):
 	def __init__(self, acq_func, logger=None):
 		self.acq_func = acq_func
 		self.logger = logger
+		self.name = ""
 
 	@abstractmethod
 	def obtain_batch(

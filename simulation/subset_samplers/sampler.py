@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 class Sampler(ABC):
 	def __init__(self):
 		self.agressive = False
+		self.obj_func = None # To be set externally
 
 	@abstractmethod
 	def sample(self, 

@@ -6,12 +6,13 @@ from scipy.stats import norm, gumbel_r, uniform
 class G_Oscillator(BaseObjectiveFunction):
 	def __init__(self):
 		super().__init__(name="nonlinear_oscillator", dim=6)
-		self.failure_probability = 0.028650
+		self.failure_probability = 0.02865
 
 	def _evaluate(self, x):
-		w_0 = np.sqrt((x[0]+x[1])/x[2])
-		val = 2*x[5]*np.sin(w_0*x[4]*0.5)/(x[2]*w_0**2)
-		return 3*x[3]-abs(val)
+		c1,c2,m,r,t,F = x
+		w_0 = np.sqrt((c1+c2)/m)
+		val = 2*F*np.sin(w_0*t*0.5)/(m*w_0**2)
+		return 3*r-abs(val)
 
 	def data_definition(self):
 		c1 = np.random.normal(1, 0.1)

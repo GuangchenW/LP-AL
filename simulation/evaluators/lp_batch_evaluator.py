@@ -1,6 +1,7 @@
 import sys
 import math
 import numpy as np
+from scipy.stats import norm
 
 from .base_evaluator import BaseEvaluator
 
@@ -8,12 +9,14 @@ class LP_Batch(BaseEvaluator):
 	def __init__(self, acq_func, logger=None):
 		super().__init__(acq_func=acq_func, logger=logger)
 		self.L = float("nan")
+		self.name = "lp"
 
 	def set_grad(self, grad):
 		self.grad = grad
 
 	def set_L(self, L):
 		self.L = max(0.25,L)
+		print(self.L)
 
 	def obtain_batch(
 		self,
@@ -29,8 +32,13 @@ class LP_Batch(BaseEvaluator):
 		utilities = self.soft_plus_transform(utilities)
 		utilities = np.log(utilities)
 
-		# TEST HACK
-		grad_norm = np.linalg.norm(self.grad, axis=1)
+		# Use 50 random samples to estimate L; reduce the effect of extreme gradients in Kriging estimation
+		if len(self.grad) > 50:
+			grad_samples = np.random.choice(len(self.grad), 50)
+			grad_norm = np.linalg.norm(self.grad[grad_samples], axis=1)
+		else:
+			grad_norm = np.linalg.norm(self.grad, axis=1)
+		self.set_L(grad_norm.max())
 
 		for i in range(min(n_points, len(subset_points))):
 			max_id = np.argmax(utilities)
@@ -41,15 +49,9 @@ class LP_Batch(BaseEvaluator):
 				"utility": utilities[max_id]
 				})
 
-			self.set_L(np.linalg.norm(self.grad[max_id]))
-			utilities = self.apply_hammer(subset_points, batch[-1], utilities)
-			#doe_input = np.append(doe_input, [subset_points[max_id]], axis=0)
-			#doe_response = np.append(doe_response, [mean[max_id]])
-			#k=i+1
-			#mean, variance = self.model.fantasize(doe_input[-k:], doe_response[-k:], subset_points)
+			#self.set_L(np.linalg.norm(self.grad[max_id]))
 
-			#m, v = self.model.fantasize([[1,1],[2,2]], [10,5], [[1,1],[2,2]])
-			#print(m,v)
+			utilities = self.apply_hammer(subset_points, batch[-1], utilities)
 
 		return np.array(batch)
 
@@ -74,3 +76,11 @@ class LP_Batch(BaseEvaluator):
 		phi = max(sys.float_info.min, phi) # Prevent cases where erfc evaluates to 0
 		return np.log(phi)
 
+	def alt_log_hammer_func(self, candidate, center, variance, offset):
+		new_offset = np.sqrt(2/np.pi)*np.sqrt(variance)*np.exp(-offset**2/(2*variance))+offset*(1-2*norm.cdf(-offset/np.sqrt(variance)))
+		new_variance = offset**2+variance-new_offset**2
+		dist = np.linalg.norm(center-candidate)
+		z = (self.L*dist-abs(new_offset))/np.sqrt(2*new_variance)
+		phi = 0.5*math.erfc(-z)
+		phi = max(sys.float_info.min, phi) # Prevent cases where erfc evaluates to 0
+		return np.log(phi)

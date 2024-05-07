@@ -15,12 +15,17 @@ class AKMCS:
 		self.acq_func = acq_func if not acq_func == None else ULP()
 		self.sampler = sampler if not sampler == None else U_Sampler(threshold=4)
 		#self.sampler.aggressive_mode(True)
-		self.evaluator = evaluator if not evaluator == None else LP_Batch(acq_func=self.acq_func)
+		if evaluator:
+			self.evaluator = evaluator
+			self.evaluator.acq_func = self.acq_func
+		else:
+		 	self.evaluator = LP_Batch(acq_func=self.acq_func)
 		self.stopper = ESC(epsilon_thr=0.01)
 		self.max_iter = max_iter
 		self.batch_size = batch_size
+		self.name = self.evaluator.name+"_"+self.acq_func.name
 
-	def initialize_input(self, obj_func, sample_size=None, num_init=12, seed=1, silent=True):
+	def initialize_input(self, obj_func, sample_size=None, num_init=12, seed=1, debug=False, silent=True):
 		"""
 		Reset and initialize the objective function and input data. 
 		:param input_space: The monte-carlo population.
@@ -31,7 +36,9 @@ class AKMCS:
 		"""
 		self.obj_func = obj_func
 		self.input_space = obj_func.load_data()
+		self.sample_size = min(self.input_space.shape[0], sample_size)
 		self.num_init = num_init
+		self.sampler.obj_func = obj_func
 
 		np.random.seed(seed)
 		np.random.shuffle(self.input_space)
@@ -39,8 +46,7 @@ class AKMCS:
 		if sample_size == None:
 			self.kriging_sample = self.input_space
 		else:
-			sample_size = min(self.input_space.shape[0], sample_size)
-			self.kriging_sample = self.input_space[:sample_size]
+			self.kriging_sample = self.input_space[:self.sample_size]
 
 		#self.model = GPRegression(n_dim=self.obj_func.dim)
 		self.model = OrdinaryKriging(n_dim=self.obj_func.dim)
@@ -50,14 +56,18 @@ class AKMCS:
 
 		# Logging setup
 		log_file_name = "%s_%s_init%d_batch%d.txt" % (obj_func.name, self.acq_func.name, num_init, self.batch_size)
-		self.logger = Logger(log_file_name, silent=silent)
+		self.logger = Logger(log_file_name, silent=silent, active=debug)
 		self.silent = silent
 
 	def kriging_estimate(self, do_mcs=False):
 		for i in range(self.max_iter):
 			if self.silent:
 				print("%s | %s | iter : %d" % (self.acq_func.name, self.obj_func.name, i))
-			if not self.kriging_step(i):
+			while True:
+				step_result = self.kriging_step(i)
+				if step_result != "skip":
+					break
+			if step_result == "stop":
 				break
 		
 		result = self.compute_failure_probability(do_mcs=do_mcs)
@@ -79,7 +89,20 @@ class AKMCS:
 		epsilon_max, should_stop = self.stopper(mean, variance)
 		self.logger.log("Epsilon max : %.6g" % epsilon_max)
 		if should_stop:
-			return False
+			# Check coefficient of variation
+			n_failures = np.sum(mean < 0)
+			est_P_f = n_failures / self.sample_size
+			cv = np.sqrt((1-est_P_f)/(est_P_f*self.sample_size))
+
+			if cv > 0.05:
+				if self.sample_size >= 10**5:
+					# Good enough, don't want to spend more time
+					return "stop"
+				self.sample_size += 10**4
+				self.kriging_sample = self.input_space[:self.sample_size]
+				return "skip"
+			else:
+				return "stop"
 
 		# Sample critical region
 		for i in range(16):
@@ -120,15 +143,16 @@ class AKMCS:
 				self.doe_response, 
 				self.obj_func.evaluate(candidate["next"], True))
 
+		# Record selections
 		self.logger.log_batch(iter_count, batch)
 
-		return True
+		return "continue"
 
 	def compute_failure_probability(self, do_mcs):
 		# STEP8: Compute coefficient of variation of the probability of failure
 		N_MCS = self.input_space.shape[0]
-		z, ss = self.model.execute(self.input_space)
-		num_negative_predictions = np.sum(z <= 0)
+		mean, var = self.model.execute(self.input_space)
+		num_negative_predictions = np.sum(mean < 0)
 		est_P_f = num_negative_predictions / N_MCS
 		cov_fail = np.sqrt((1-est_P_f)/(est_P_f*N_MCS))
 		

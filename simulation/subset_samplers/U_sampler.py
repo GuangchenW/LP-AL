@@ -1,13 +1,11 @@
 import numpy as np
 
 from .sampler import Sampler
-from simulation.acquisition_functions import U
 
 class U_Sampler(Sampler):
 	def __init__(self, threshold=1.96):
 		super().__init__()
 		self.threshold = threshold
-		self.util_func = U()
 
 	def sample(
 		self, 

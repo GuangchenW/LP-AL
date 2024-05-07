@@ -61,20 +61,25 @@ class ESC:
 		return mu_Ss, mu_Sf, var_Ss, var_Sf
 
 class Logger:
-	def __init__(self, out_target=None, silent=False):
+	def __init__(self, out_target=None, silent=False, active=True):
 		directory = os.path.dirname(os.path.realpath(__file__))
 		target_path = directory+"/test_logs/"
 		if not os.path.exists(target_path):
 			os.makedirs(target_path)
 		self.out_target = open(target_path+out_target, "w") if out_target else sys.stdout
 		self.silent = silent
+		self.active = active
 
 	def log(self, content):
+		if not self.active:
+			return
 		self.out_target.write(content+"\n")
 		if not self.silent and self.out_target is not sys.stdout:
 			print(content)
 
 	def log_batch(self, iteration, batch):
+		if not self.active:
+			return
 		self.log("**"*25)
 		self.log("Iteration [%i] | Batch size [%i]" % (iteration, len(batch)))
 		for candidate in batch:

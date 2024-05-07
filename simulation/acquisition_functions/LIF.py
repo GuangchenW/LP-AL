@@ -1,5 +1,6 @@
 import math
 import numpy as np
+import tensorflow as tf
 from scipy.stats import norm
 from scipy.special import comb, factorial2
 from .acquisition_function import BaseAcquisitionFunction

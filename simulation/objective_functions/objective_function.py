@@ -40,4 +40,25 @@ class BaseObjectiveFunction(ABC):
 
 	@abstractmethod
 	def logpdf(self, x):
+		# Returns the log pdf of x. 
+		# May need to be exponetiated at some point.
+		# At power of ~-755 python precision insufficient and just gives 0, 
+		# but such a small probability density shouldn't matter anyway.
 		pass
+
+	def estimate_failure_prob(self, free=False, n=10**7):
+		n_fail = 0
+		if free:
+			for i in range(n):
+				if self._evaluate(self.data_definition()) < 0:
+					n_fail += 1
+				print("MCS progress [%d/%d]\r" % (i,n), end="")
+			print(n_fail/n)
+		else:
+			data = self.load_data()
+			n = len(data)
+			for i,d in enumerate(data):
+				if self.evaluate(d, True) < 0:
+					n_fail += 1
+				print("MCS progress [%d/%d]\r" % (i,n), end="")
+			print(n_fail/n)
