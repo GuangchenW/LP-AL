@@ -1,6 +1,9 @@
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 from scipy.stats import norm
+
+matplotlib.rcParams["mathtext.fontset"]="cm"
 
 mean = 1
 x = np.arange(-2, 4, 0.01)

@@ -16,7 +16,7 @@ class LP_Batch(BaseEvaluator):
 
 	def set_L(self, L):
 		self.L = max(0.25,L)
-		print(self.L)
+		#print(self.L)
 
 	def obtain_batch(
 		self,
@@ -41,7 +41,7 @@ class LP_Batch(BaseEvaluator):
 		self.set_L(grad_norm.max())
 
 		for i in range(min(n_points, len(subset_points))):
-			max_id = np.argmax(utilities)
+			max_id = np.nanargmax(utilities)
 			batch.append({
 				"next": subset_points[max_id],
 				"mean": mean[max_id],

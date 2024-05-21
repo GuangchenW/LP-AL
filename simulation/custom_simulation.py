@@ -69,14 +69,18 @@ if __name__ == "__main__":
 	ax.fill_between(x, mean-variance, mean+variance, alpha=0.1)
 	ax.plot(x, new_util, color="red", label="$%s$"%prev_score)
 	ax.plot(x[idx], new_util[idx], "*", markersize=10)
+	ax.set_xlabel("$x$")
+	ax.set_ylabel("value")
 	ax.legend(fontsize="large", loc=2)
-	plt.show()
+	fig.tight_layout()
+	plt.savefig("0.pdf", format="pdf")
 
+	L = np.absolute(grad).max()
 	for i in range(2):
 
 		fig, (ax1, ax2) = plt.subplots(2, 1, gridspec_kw={"height_ratios":[1,2]})
 
-		hammer = np.array([hammer_func(c, x[idx], variance[idx], mean[idx], abs(grad[idx][0])) for c in x])
+		hammer = np.array([hammer_func(c, x[idx], variance[idx], mean[idx], L) for c in x])
 		penalty_name = "\\psi(x;x_{1,%d})"%(i+1)
 		ax1.plot(x, hammer, color="green", label="$%s$"%penalty_name)
 		ax1.legend(fontsize="large", loc=4)
@@ -87,7 +91,7 @@ if __name__ == "__main__":
 		# Previous utility
 		# ax2.plot(x, new_util, color="red", label="$%s$"%prev_score, ls="--")
 		# Apply penalty
-		new_util = apply_hammer(x, x[idx], mean[idx], variance[idx], np.absolute(grad).max(), new_util)
+		new_util = apply_hammer(x, x[idx], mean[idx], variance[idx], L, new_util)
 		prev_score = prev_score+penalty_name
 		ax2.plot(x, new_util, color="red", label="$%s$"%prev_score)
 
@@ -97,5 +101,6 @@ if __name__ == "__main__":
 		ax2.legend(fontsize="large", loc=2)
 		ax2.set_xlabel("$x$")
 		ax2.set_ylabel("value")
-
-		plt.show()
+	
+		fig.tight_layout()
+		plt.savefig("%d.pdf"%(i+1), format="pdf")

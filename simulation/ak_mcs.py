@@ -1,6 +1,8 @@
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
+from matplotlib import animation
+from matplotlib.lines import Line2D
 import math
 from gpytorch.kernels import ScaleKernel, RBFKernel
 
@@ -185,6 +187,8 @@ class AKMCS:
 	def visualize(self):
 		if not self.doe_input.shape[1] == 2:
 			return
+
+		matplotlib.rcParams["mathtext.fontset"]="cm"
 		############################################################
 		# subset sample evolution
 		if len(self.sample_history) > 0:
@@ -216,24 +220,10 @@ class AKMCS:
 
 		plt.figure()
 		contours = plt.contourf(grid_x, grid_y, z, levels=100, cmap='jet')
-
-		plt.colorbar(label='Value')
-		plt.xlabel('X1-coordinate')
-		plt.ylabel('X2-coordinate')
-		plt.title('Kriging Interpolation')
-
-		# Level 0, the estimate of the limit state by the kriging model
-		contours = plt.contour(grid_x, grid_y, z, levels=[0], colors='r', linewidths=2)
-
-		# Plot the points queried
-		plt.scatter(self.doe_input[:, 0], self.doe_input[:, 1], s=2, c='black', label='Data')
-
-		# Kriging model contour
-		plt.contour(grid_x, grid_y, z, colors='white', linewidths=1, linestyles='dashed', alpha=0.5)
-
-		# Color bar and legends
-		plt.colorbar(label='Value')
-		plt.legend()
+		plt.colorbar(label="value")
+		plt.xlabel(r"$x_1$", fontsize=12)
+		plt.ylabel(r"$x_2$", fontsize=12)
+		#plt.title('Kriging Interpolation')
 
 		# Mesh
 		x1_grid, x2_grid = np.meshgrid(grid_x, grid_y)
@@ -245,8 +235,25 @@ class AKMCS:
 				G_values[i,j] = self.obj_func.evaluate([grid_x[i], grid_y[j]])
 
 		# Actual limit state i.e. G(x1, x2)=0
-		contours = plt.contour(x1_grid, x2_grid, G_values, levels=[0], colors='b', linestyles='dashed')
+		contours = plt.contour(x1_grid, x2_grid, G_values, levels=[0], colors='b')
 
-		plt.show()
+		# Level 0, the estimate of the limit state by the kriging model
+		contours = plt.contour(grid_x, grid_y, z, levels=[0], colors="red", linewidths=2, linestyles='dashed')
 
-		ani.save("sample_selections.gif")
+		# Plot the points queried
+		plt.scatter(self.doe_input[:12, 0], self.doe_input[:12, 1], s=3, c="magenta", label=r"$\mathcal{B}_0$")
+		plt.scatter(self.doe_input[12:, 0], self.doe_input[12:, 1], s=3, c="black", label="samples added")
+
+		# Kriging model contour
+		plt.contour(grid_x, grid_y, z, colors='white', linewidths=1, linestyles='dashed', alpha=0.5)
+
+		handles, _ = plt.gca().get_legend_handles_labels()
+		est_limit_state = Line2D([0], [0], label=r"$m_n(\mathbf{x})=0$", color="red", linestyle='dashed')
+		actual_limit_state = Line2D([0], [0], label=r"$f(\mathbf{x})=0$", color="blue")
+		handles.extend([est_limit_state,actual_limit_state])
+		plt.legend(handles=handles, loc=1, prop={"size":10})
+
+		plt.tight_layout()
+		plt.savefig("plot.png", dpi=300)
+
+		#ani.save("sample_selections.gif")

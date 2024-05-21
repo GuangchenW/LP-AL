@@ -7,7 +7,7 @@ class G_4B(BaseObjectiveFunction):
 	def __init__(self):
 		super().__init__(name="4B", dim=2)
 		self.k = 7
-		self.failure_probability = 0.002221
+		self.failure_probability = 0.002230
 
 	def _evaluate(self, x):
 		x1=x[0]

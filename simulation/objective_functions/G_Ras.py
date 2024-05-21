@@ -7,7 +7,7 @@ class G_Ras(BaseObjectiveFunction):
 	def __init__(self):
 		super().__init__(name="modified_rastrigin", dim=2)
 		self.d = 5
-		self.failure_probability = 0.29261
+		self.failure_probability = 0.2941
 
 	def _evaluate(self, x):
 		x1=x[0]

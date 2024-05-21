@@ -26,15 +26,14 @@ def get_test_takers(batch_size, obj_func):
 	return takers
 
 def get_test_suite():
-	return [G_4B(), G_Ras(), G_Oscillator(), G_Tube()]
-	#return [G_Oscillator(), G_Tube()]
-	#return [G_4B()]
+	#return [G_4B(), G_Ras(), G_Oscillator(), G_Tube()]
+	return [G_FEM()]
 
 def run_test_single():
-	test = G_Tube()
+	test = G_Ras()
 	#taker = AKMCS(acq_func=U(), sampler=U_Sampler(), evaluator=KB_Batch(acq_func=None), batch_size=4)
 	#taker = AKMCS(acq_func=U(), sampler=U_Sampler(), evaluator=KMedoid_Batch(acq_func=None), batch_size=1)
-	taker = AKMCS(acq_func=H(), sampler=U_Sampler(), batch_size=4)
+	taker = AKMCS(acq_func=LIF(test), sampler=U_Sampler(), batch_size=8)
 	taker.initialize_input(test, sample_size=10**4, num_init=nearest_init_num(test.dim), seed=10, silent=False, debug=True)
 	result = taker.kriging_estimate(do_mcs=False)
 	print(result)
@@ -48,10 +47,10 @@ def nearest_init_num(n_dim):
 
 def run_test_suite(idx):
 	tests = get_test_suite()
-	seed = np.random.randint(0,10000)
-	file = open("experiement%d.txt" % idx, "a")
-	for i in [1, 4, 8, 12]:
-		file.write("batch %d \n" % i)
+	for i in [1,4,8,12]:
+		with open("experiement%d.txt" % idx, "a") as file:
+			file.write("batch %d \n" % i)
+
 		for test in tests:
 			takers = get_test_takers(i, test)
 			for taker in takers:
@@ -61,9 +60,9 @@ def run_test_suite(idx):
 				t_elapsed = time.process_time()-t1
 				line = "%s,%s,%d,%f,%f,%f,%f,%d,%f\n" % (result["system"], taker.name, result["iter"], result["Pf"], result["Pfe"], result["COV"], result["re"], taker.sample_size, t_elapsed)
 				print(line)
-				file.write(line)
+				with open("experiement%d.txt" % idx, "a") as file:
+					file.write(line)
 			print(datetime.datetime.now())
-	file.close()
 
 if __name__ == "__main__":
 	run_suite = True
@@ -71,7 +70,6 @@ if __name__ == "__main__":
 		run_test_single()
 	else:
 		with keep.running() as k:
-			for i in range(13,30):
+			for i in range(10,20):
 				run_test_suite(i)
-				break
 
