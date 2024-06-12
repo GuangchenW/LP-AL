@@ -46,7 +46,4 @@ class KB_Batch(BaseEvaluator):
 			self.fantasy_model.train(doe_input, doe_response)
 			mean, variance = self.fantasy_model.execute(subset_points, with_grad=False)
 
-			#m, v = self.model.fantasize([[1,1],[2,2]], [10,5], [[1,1],[2,2]])
-			#print(m,v)
-
 		return np.array(batch)

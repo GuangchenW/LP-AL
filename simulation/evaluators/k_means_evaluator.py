@@ -6,7 +6,7 @@ from sklearn_extra.cluster import KMedoids
 
 from .base_evaluator import BaseEvaluator
 
-class KMedoid_Batch(BaseEvaluator):
+class KMeans_Batch(BaseEvaluator):
 	def __init__(self, acq_func, logger=None):
 		super().__init__(acq_func=acq_func, logger=logger)
 		self.name="cluster"
@@ -42,7 +42,6 @@ class KMedoid_Batch(BaseEvaluator):
 				"utility": float("nan")
 				})
 		'''
-
 
 		for pnt in centroids:
 			batch.append({
