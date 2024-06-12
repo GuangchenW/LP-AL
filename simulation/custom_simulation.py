@@ -55,52 +55,59 @@ if __name__ == "__main__":
 	model.train(test_inputs, test_outputs)
 
 	mean, variance, grad = model.execute(x, with_grad=True)
+	variance = np.sqrt(variance)
 
 	acq_func = EFF()
 	util = acq_func.acquire(x, mean, variance, test_inputs, test_outputs)
 	new_util = util
-
+	
+	y = example_func(x)
 	x = x.flatten()
 	idx = np.nanargmax(new_util)
 
-	fig, ax = plt.subplots()
-	prev_score = "\\alpha(x;\\mathcal{B}_0)"
-	ax.plot(x, mean, alpha=0.4, label="$\\hat{f}(x)$")
-	ax.fill_between(x, mean-variance, mean+variance, alpha=0.1)
-	ax.plot(x, new_util, color="red", label="$%s$"%prev_score)
-	ax.plot(x[idx], new_util[idx], "*", markersize=10)
-	ax.set_xlabel("$x$")
+	fig, ax = plt.subplots(figsize=(15,5))
+	prev_score = r"\alpha(x;\mathcal{B}_0)"
+	#ax.plot(x, y, alpha=0.6, color="orange", label=r"$f(x)$") # Actual function
+	#ax.plot(x, mean, alpha=0.9, label=r"$\hat{f}(x)$")
+	#ax.fill_between(x, mean-variance, mean+variance, alpha=0.1)
+	#ax.scatter(test_inputs.flatten(), test_outputs, marker="+", color="black", label="training data")
+	ax.plot(x, new_util, color="red", label="scores")#ax.plot(x, new_util, color="red", label="$%s$"%prev_score)
+	ax.plot(x[idx], new_util[idx], "*", markersize=20, color="orange")
+	ax.set_xlabel("input")
 	ax.set_ylabel("value")
-	ax.legend(fontsize="large", loc=2)
+	ax.legend(fontsize="large", loc=3)
 	fig.tight_layout()
-	plt.savefig("0.pdf", format="pdf")
+	plt.savefig("0.png", format="png", dpi=300)
+
 
 	L = np.absolute(grad).max()
 	for i in range(2):
 
-		fig, (ax1, ax2) = plt.subplots(2, 1, gridspec_kw={"height_ratios":[1,2]})
+		#fig, (ax1, ax2) = plt.subplots(2, 1, gridspec_kw={"height_ratios":[1,2]})
+		fig, (ax1, ax2) = plt.subplots(2, 1, gridspec_kw={"height_ratios":[1,2]}, figsize=(15,7.5))
 
 		hammer = np.array([hammer_func(c, x[idx], variance[idx], mean[idx], L) for c in x])
 		penalty_name = "\\psi(x;x_{1,%d})"%(i+1)
-		ax1.plot(x, hammer, color="green", label="$%s$"%penalty_name)
+		ax1.plot(x, hammer, color="green", label="penalty")#ax1.plot(x, hammer, color="green", label="$%s$"%penalty_name)
 		ax1.legend(fontsize="large", loc=4)
 		ax1.set_ylabel("value")
 
-		ax2.plot(x, mean, alpha=0.4, label="$\\hat{f}(x)$")
-		ax2.fill_between(x, mean-variance, mean+variance, alpha=0.1)
+		# Model
+		#ax2.plot(x, mean, alpha=0.9, label="$\\hat{f}(x)$")
+		#ax2.fill_between(x, mean-variance, mean+variance, alpha=0.1)
 		# Previous utility
 		# ax2.plot(x, new_util, color="red", label="$%s$"%prev_score, ls="--")
 		# Apply penalty
 		new_util = apply_hammer(x, x[idx], mean[idx], variance[idx], L, new_util)
 		prev_score = prev_score+penalty_name
-		ax2.plot(x, new_util, color="red", label="$%s$"%prev_score)
+		ax2.plot(x, new_util, color="red", label="penalized scores")#ax2.plot(x, new_util, color="red", label="$%s$"%prev_score)
 
 		idx = np.nanargmax(new_util)
-		ax2.plot(x[idx], new_util[idx], "*", markersize=10)
+		ax2.plot(x[idx], new_util[idx], "*", markersize=20, color="orange")
 
-		ax2.legend(fontsize="large", loc=2)
-		ax2.set_xlabel("$x$")
+		ax2.legend(fontsize="large", loc=3)
+		ax2.set_xlabel("input")
 		ax2.set_ylabel("value")
 	
 		fig.tight_layout()
-		plt.savefig("%d.pdf"%(i+1), format="pdf")
+		plt.savefig("%d.png"%(i+1), format="png", dpi=300)

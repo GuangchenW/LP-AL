@@ -30,10 +30,10 @@ def get_test_suite():
 	return [G_FEM()]
 
 def run_test_single():
-	test = G_Ras()
+	test = G_4B()
 	#taker = AKMCS(acq_func=U(), sampler=U_Sampler(), evaluator=KB_Batch(acq_func=None), batch_size=4)
 	#taker = AKMCS(acq_func=U(), sampler=U_Sampler(), evaluator=KMedoid_Batch(acq_func=None), batch_size=1)
-	taker = AKMCS(acq_func=LIF(test), sampler=U_Sampler(), batch_size=8)
+	taker = AKMCS(acq_func=U(), sampler=U_Sampler(), batch_size=12)
 	taker.initialize_input(test, sample_size=10**4, num_init=nearest_init_num(test.dim), seed=10, silent=False, debug=True)
 	result = taker.kriging_estimate(do_mcs=False)
 	print(result)
@@ -65,7 +65,7 @@ def run_test_suite(idx):
 			print(datetime.datetime.now())
 
 if __name__ == "__main__":
-	run_suite = True
+	run_suite = False
 	if not run_suite:
 		run_test_single()
 	else:

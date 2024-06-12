@@ -70,6 +70,14 @@ class LP_Batch(BaseEvaluator):
 		return np.array(hammered_util)
 
 	def log_hammer_func(self, candidate, center, variance, offset):
+		# Edge case of applying penalty to the center itself.
+		# In the case where output is noisy, it's fine to apply penalty as is
+		# and allow the center to potentially selected again (same point may appear in batch multiple times).
+		# In our case however, the output is noiseless.
+		# So we apply an extra strong penalty to the center to make sure it won't be selected again.
+		if np.all(center==candidate):
+			return np.log(sys.float_info.min)
+
 		dist = np.linalg.norm(center-candidate)
 		z = (self.L*dist-abs(offset))/np.sqrt(2*variance)
 		phi = 0.5*math.erfc(-z)

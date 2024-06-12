@@ -3,6 +3,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import animation
 from matplotlib.lines import Line2D
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 import math
 from gpytorch.kernels import ScaleKernel, RBFKernel
 
@@ -42,6 +43,8 @@ class AKMCS:
 		self.num_init = num_init
 		self.sampler.obj_func = obj_func
 
+		self.prob_history = []
+
 		np.random.seed(seed)
 		np.random.shuffle(self.input_space)
 
@@ -65,46 +68,65 @@ class AKMCS:
 		for i in range(self.max_iter):
 			if self.silent:
 				print("%s | %s | iter : %d" % (self.acq_func.name, self.obj_func.name, i))
-			while True:
-				step_result = self.kriging_step(i)
-				if step_result != "skip":
-					break
-			if step_result == "stop":
+			if self.kriging_step(i):
 				break
 		
 		result = self.compute_failure_probability(do_mcs=do_mcs)
 		result["iter"] = i
+
+		print(repr(self.prob_history))
 		return result
+
+	def check_convergence(self, mean, variance):
+		"""
+		:return: Whether the relative error has converged.
+		"""
+		# Compute estimated relative error epsilon_max
+		epsilon_max, should_stop = self.stopper(mean, variance)
+		self.logger.log("Epsilon max : %.6g" % epsilon_max)
+		return should_stop
+
+	def check_coefficient_variation(self, mean, threshold=0.05):
+		"""
+		:return: True if coefficient of variation is less or equal to threshold, False otherwise.
+		"""
+		# Compute coefficient of variation
+		num_failures = np.sum(mean < 0)
+		est_prob_failure = num_failures / self.sample_size
+		cv = np.sqrt((1-est_prob_failure)/(est_prob_failure*self.sample_size))
+
+		# Check if coefficient of variation is acceptable.
+		# If not, expand sample pool.
+		if cv > threshold:
+			if self.sample_size >= 10**5:
+				# Good enough, don't want to spend more time.
+				return True
+			self.sample_size += 10**4
+			self.kriging_sample = self.input_space[:self.sample_size]
+			return False
+		else:
+			return True
 
 	def kriging_step(self, iter_count):
 		# Construct Kriging model
 		self.model.train(self.doe_input, self.doe_response)
 
-		# Acquire all estimations
-		mean, variance, grad = self.model.execute(self.kriging_sample, with_grad=True)
-		
-		# Compute max norm of expected gradient
-		# max_grad = np.max(np.linalg.norm(grad, axis=1))
-		# max_grad = max(0.25, max_grad)
+		while True:
+			# Obtain mean, variance and expected gradient for all samples
+			mean, variance, grad = self.model.execute(self.kriging_sample, with_grad=True)
+			
+			self.prob_history.append(np.sum(mean<0)/len(mean))
 
-		# Compute stopping criterion
-		epsilon_max, should_stop = self.stopper(mean, variance)
-		self.logger.log("Epsilon max : %.6g" % epsilon_max)
-		if should_stop:
-			# Check coefficient of variation
-			n_failures = np.sum(mean < 0)
-			est_P_f = n_failures / self.sample_size
-			cv = np.sqrt((1-est_P_f)/(est_P_f*self.sample_size))
+			has_converged = self.check_convergence(mean, variance)
 
-			if cv > 0.05:
-				if self.sample_size >= 10**5:
-					# Good enough, don't want to spend more time
-					return "stop"
-				self.sample_size += 10**4
-				self.kriging_sample = self.input_space[:self.sample_size]
-				return "skip"
+			if has_converged:
+				# If coefficient of variation is sufficiently low, tell process to finish.
+				# Otherwise re-evaluated convergence criterion with the expanded sample pool.
+				if self.check_coefficient_variation(mean):
+					return True
 			else:
-				return "stop"
+				# Not yet converged, carry on with batch acquisition.
+				break
 
 		# Sample critical region
 		for i in range(16):
@@ -148,7 +170,7 @@ class AKMCS:
 		# Record selections
 		self.logger.log_batch(iter_count, batch)
 
-		return "continue"
+		return False
 
 	def compute_failure_probability(self, do_mcs):
 		# STEP8: Compute coefficient of variation of the probability of failure
@@ -218,11 +240,15 @@ class AKMCS:
 		z, ss = self.model.execute(pts[0])
 		z = z.reshape((N_GRID,N_GRID))
 
-		plt.figure()
-		contours = plt.contourf(grid_x, grid_y, z, levels=100, cmap='jet')
-		plt.colorbar(label="value")
-		plt.xlabel(r"$x_1$", fontsize=12)
-		plt.ylabel(r"$x_2$", fontsize=12)
+		fig, ax = plt.subplots()
+		contours = ax.contourf(grid_x, grid_y, z, levels=100, cmap='YlGn_r')
+		divider = make_axes_locatable(ax)
+		cax = divider.append_axes("right", size="5%", pad=0.05)
+		plt.colorbar(contours, label="value", cax=cax)
+		ax.set_aspect(0.75)
+		cax.set_aspect(15)
+		ax.set_xlabel(r"$x_1$", fontsize=12)
+		ax.set_ylabel(r"$x_2$", fontsize=12)
 		#plt.title('Kriging Interpolation')
 
 		# Mesh
@@ -235,25 +261,26 @@ class AKMCS:
 				G_values[i,j] = self.obj_func.evaluate([grid_x[i], grid_y[j]])
 
 		# Actual limit state i.e. G(x1, x2)=0
-		contours = plt.contour(x1_grid, x2_grid, G_values, levels=[0], colors='b')
+		contours = ax.contour(x1_grid, x2_grid, G_values, levels=[0], colors='b')
 
 		# Level 0, the estimate of the limit state by the kriging model
-		contours = plt.contour(grid_x, grid_y, z, levels=[0], colors="red", linewidths=2, linestyles='dashed')
+		contours = ax.contour(grid_x, grid_y, z, levels=[0], colors="red", linewidths=2, linestyles='dashed')
 
 		# Plot the points queried
-		plt.scatter(self.doe_input[:12, 0], self.doe_input[:12, 1], s=3, c="magenta", label=r"$\mathcal{B}_0$")
-		plt.scatter(self.doe_input[12:, 0], self.doe_input[12:, 1], s=3, c="black", label="samples added")
+		ax.scatter(self.doe_input[:12, 0], self.doe_input[:12, 1], marker="v", s=5, c="magenta", label=r"$\mathcal{B}_0$")
+		ax.scatter(self.doe_input[12:, 0], self.doe_input[12:, 1], marker="o", s=5, c="black", label="Samples added")
 
 		# Kriging model contour
-		plt.contour(grid_x, grid_y, z, colors='white', linewidths=1, linestyles='dashed', alpha=0.5)
+		#ax.contour(grid_x, grid_y, z, colors='white', linewidths=1, linestyles='dashed', alpha=0.5)
 
-		handles, _ = plt.gca().get_legend_handles_labels()
-		est_limit_state = Line2D([0], [0], label=r"$m_n(\mathbf{x})=0$", color="red", linestyle='dashed')
+		handles, _ = ax.get_legend_handles_labels()
+		est_limit_state = Line2D([0], [0], label=r"$\hat{f}(\mathbf{x})=0$", color="red", linestyle='dashed')
 		actual_limit_state = Line2D([0], [0], label=r"$f(\mathbf{x})=0$", color="blue")
 		handles.extend([est_limit_state,actual_limit_state])
-		plt.legend(handles=handles, loc=1, prop={"size":10})
+		ax.legend(handles=handles, loc=1, prop={"size":10})
 
 		plt.tight_layout()
-		plt.savefig("plot.png", dpi=300)
+		#plt.savefig("plot.png", dpi=300)
+		plt.show()
 
 		#ani.save("sample_selections.gif")
