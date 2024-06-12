@@ -28,39 +28,45 @@ class AKMCS:
 		self.batch_size = batch_size
 		self.name = self.evaluator.name+"_"+self.acq_func.name
 
-	def initialize_input(self, obj_func, sample_size=None, num_init=12, seed=1, debug=False, silent=True):
+	# TODO1: universal ask-tell interface for when user doesn't want to write a objective function class.
+	# TODO2: implement easier to use verbose settings
+	def initialize_input(self, 
+		obj_func, 
+		sample_size=None, 
+		bootstrap_inputs=None, 
+		bootstrap_outputs=None, 
+		seed=1, 
+		debug=False, 
+		silent=True):
 		"""
 		Reset and initialize the objective function and input data. 
-		:param input_space: The monte-carlo population.
-		:param obj_func: The objective function.
+		:param obj_func: The objective function object.
 		:param sample_size: Number of points from the `input_space` used for kriging estimation.
-		:param num_init: How many points to evaluate for the initial DOE.
-		:param random: If true, the initial DOE and samples for kriging will be taken randomly.
+		:param bootstrap_inputs: Initial input samples for priming the Kriging model. If none, a dozen(s) of samples will be chosen randomly.
+		:param bootstrap_outputs: The outputs associated with `bootstrap_inputs`.
+		:param seed: Random seed for the algorithm. Deafults to 1.
 		"""
 		self.obj_func = obj_func
+		self.model = OrdinaryKriging(n_dim=self.obj_func.dim)
 		self.input_space = obj_func.load_data()
-		self.sample_size = min(self.input_space.shape[0], sample_size)
-		self.num_init = num_init
+		self.sample_size = sample_size if sample_size else 10**4
+		# If no initial inputs provided, use a numer of random samples equal to 
+		# the smallest multiple of 12 larger than the dimension of the system.
+		self.num_init = bootstrap_inputs.shape[0] if bootstrap_inputs else 12 * (obj_func.dim // 12 + 1)
 		self.sampler.obj_func = obj_func
 
 		self.prob_history = []
 
 		np.random.seed(seed)
 		np.random.shuffle(self.input_space)
+		self.kriging_sample = self.input_space[:self.sample_size]
 
-		if sample_size == None:
-			self.kriging_sample = self.input_space
-		else:
-			self.kriging_sample = self.input_space[:self.sample_size]
-
-		#self.model = GPRegression(n_dim=self.obj_func.dim)
-		self.model = OrdinaryKriging(n_dim=self.obj_func.dim)
-		self.doe_input = self.kriging_sample[:num_init]
-		self.doe_response = np.array([self.obj_func.evaluate(x, True) for x in self.doe_input])
+		self.training_inputs = self.obj_func.normalize_data(bootstrap_inputs) if bootstrap_inputs else self.kriging_sample[:self.num_init]
+		self.training_outputs = np.copy(bootstrap_outputs) if bootstrap_outputs else np.array([self.obj_func.evaluate(x, True) for x in self.training_inputs])
 		self.sample_history = []
 
 		# Logging setup
-		log_file_name = "%s_%s_init%d_batch%d.txt" % (obj_func.name, self.acq_func.name, num_init, self.batch_size)
+		log_file_name = "%s_%s_init%d_batch%d.txt" % (obj_func.name, self.acq_func.name, self.num_init, self.batch_size)
 		self.logger = Logger(log_file_name, silent=silent, active=debug)
 		self.silent = silent
 
@@ -109,7 +115,7 @@ class AKMCS:
 
 	def kriging_step(self, iter_count):
 		# Construct Kriging model
-		self.model.train(self.doe_input, self.doe_response)
+		self.model.train(self.training_inputs, self.training_outputs)
 
 		while True:
 			# Obtain mean, variance and expected gradient for all samples
@@ -132,8 +138,8 @@ class AKMCS:
 		for i in range(16):
 			subset_pop, subset_mean, subset_var = self.sampler.sample(
 				self.kriging_sample, 
-				self.doe_input, 
-				self.doe_response,
+				self.training_inputs, 
+				self.training_outputs,
 				mean,
 				variance)
 
@@ -156,15 +162,15 @@ class AKMCS:
 			subset_pop, 
 			subset_mean, 
 			subset_var, 
-			self.doe_input, 
-			self.doe_response, 
+			self.training_inputs, 
+			self.training_outputs, 
 			self.batch_size)
 
 		# Update doe with batch
 		for candidate in batch:
-			self.doe_input = np.append(self.doe_input, [candidate["next"]], axis=0)
-			self.doe_response = np.append(
-				self.doe_response, 
+			self.training_inputs = np.append(self.training_inputs, [candidate["next"]], axis=0)
+			self.training_outputs = np.append(
+				self.training_outputs, 
 				self.obj_func.evaluate(candidate["next"], True))
 
 		# Record selections
@@ -173,40 +179,41 @@ class AKMCS:
 		return False
 
 	def compute_failure_probability(self, do_mcs):
+		# Compute coefficient of variation
 		N_MCS = self.input_space.shape[0]
 		mean, var = self.model.execute(self.input_space)
-		num_negative_predictions = np.sum(mean < 0)
-		est_P_f = num_negative_predictions / N_MCS
-		cov_fail = np.sqrt((1-est_P_f)/(est_P_f*N_MCS))
+		num_failures = np.sum(mean < 0)
+		est_prob_failure = num_failures / N_MCS
+		cov_fail = np.sqrt((1-est_prob_failure)/(est_prob_failure*N_MCS))
 		
 		# TODO: Clean this up
-		MCS_P_f = float("nan")
+		MCS_prob_failure = float("nan")
 		if do_mcs:
 			MCS_N_f = 0
 			for i in range(N_MCS):
 				if self.obj_func.evaluate(self.input_space[i], True) < 0:
 					MCS_N_f += 1
 				print("MCS progress [%d/1000000]\r" % i, end="")
-			MCS_P_f = MCS_N_f/N_MCS
+			MCS_prob_failure = MCS_N_f/N_MCS
 		else:
 			if self.obj_func.failure_probability > 0:
-				MCS_P_f = self.obj_func.failure_probability
+				MCS_prob_failure = self.obj_func.failure_probability
 
-		self.logger.log(f"True probability of failure: {MCS_P_f:.6g}")
-		self.logger.log(f"Estimated probability of failure: {est_P_f:.6g}")
+		self.logger.log(f"True probability of failure: {MCS_prob_failure:.6g}")
+		self.logger.log(f"Estimated probability of failure: {est_prob_failure:.6g}")
 		self.logger.log(f"COV of probability of failure: {cov_fail:.6g}")
 		self.logger.clean_up()
 		return {
 			"system": self.obj_func.name,
-			"Pf":  MCS_P_f,
+			"Pf":  MCS_prob_failure,
 			"name": self.acq_func.name,
-			"Pfe": est_P_f,
+			"Pfe": est_prob_failure,
 			"COV": cov_fail,
-			"re": abs(MCS_P_f-est_P_f)/MCS_P_f
+			"re": abs(MCS_prob_failure-est_prob_failure)/MCS_prob_failure
 		}
 
 	def visualize(self):
-		if not self.doe_input.shape[1] == 2:
+		if not self.training_inputs.shape[1] == 2:
 			return
 
 		matplotlib.rcParams["mathtext.fontset"]="cm"
@@ -220,7 +227,7 @@ class AKMCS:
 				sample_plot = ax.scatter(samples[0],samples[1], c="blue", s=2)
 				doe_range_l = self.num_init+i*self.batch_size
 				doe_range_u = self.num_init+(i+1)*self.batch_size
-				selection = self.doe_input[doe_range_l:doe_range_u].T
+				selection = self.training_inputs[doe_range_l:doe_range_u].T
 				selection_plot = ax.scatter(selection[0], selection[1],c="red",s=4)
 				txt = ax.text(0.05,0.05, str(i), ha="right", va="bottom", transform=fig.transFigure)
 				artists.append([sample_plot, selection_plot, txt])
@@ -261,9 +268,9 @@ class AKMCS:
 		contours = ax.contour(grid_x, grid_y, z, levels=[0], colors="red", linewidths=2, linestyles='dashed')
 
 		# Plot the initial training samples
-		ax.scatter(self.doe_input[:self.num_init, 0], self.doe_input[:self.num_init, 1], marker="v", s=5, c="magenta", label=r"$\mathcal{B}_0$")
+		ax.scatter(self.training_inputs[:self.num_init, 0], self.training_inputs[:self.num_init, 1], marker="v", s=5, c="magenta", label=r"$\mathcal{B}_0$")
 		# Plot the samples added
-		ax.scatter(self.doe_input[self.num_init:, 0], self.doe_input[self.num_init:, 1], marker="o", s=5, c="black", label="Samples added")
+		ax.scatter(self.training_inputs[self.num_init:, 0], self.training_inputs[self.num_init:, 1], marker="o", s=5, c="black", label="Samples added")
 
 		# Legend for the acual and estimated limit state
 		handles, _ = ax.get_legend_handles_labels()

@@ -15,8 +15,8 @@ class LP_Batch(BaseEvaluator):
 		self.grad = grad
 
 	def set_L(self, L):
-		self.L = max(0.25,L)
-		#print(self.L)
+		# Prevents cases where the gradient is flat and causes problems
+		self.L = max(0.05,L)
 
 	def obtain_batch(
 		self,
@@ -49,8 +49,6 @@ class LP_Batch(BaseEvaluator):
 				"utility": utilities[max_id]
 				})
 
-			#self.set_L(np.linalg.norm(self.grad[max_id]))
-
 			utilities = self.apply_hammer(subset_points, batch[-1], utilities)
 
 		return np.array(batch)
@@ -58,7 +56,7 @@ class LP_Batch(BaseEvaluator):
 	def soft_plus_transform(self, x):
 		# With numpy 80 bits precision, for x > 100 the soft-plus transform doesn't do anything 
 		# and may even fail due to large numbers. The soft-plus transform is mostly for dealing with 0
-		# so this workaround should be fine, 
+		# so this workaround should be fine.
 		return np.array([np.log(1+np.exp(_x)) if _x < 100 else _x for _x in x])
 
 	def apply_hammer(self, candidates, batch, utilities):

@@ -34,16 +34,10 @@ def run_test_single():
 	#taker = AKMCS(acq_func=U(), sampler=U_Sampler(), evaluator=KB_Batch(acq_func=None), batch_size=4)
 	#taker = AKMCS(acq_func=U(), sampler=U_Sampler(), evaluator=KMedoid_Batch(acq_func=None), batch_size=1)
 	taker = AKMCS(acq_func=U(), sampler=U_Sampler(), batch_size=12)
-	taker.initialize_input(test, sample_size=10**4, num_init=nearest_init_num(test.dim), seed=10, silent=False, debug=True)
+	taker.initialize_input(test, sample_size=10**4, seed=10, silent=False, debug=True)
 	result = taker.kriging_estimate(do_mcs=False)
 	print(result)
 	taker.visualize()
-
-def nearest_init_num(n_dim):
-	num = 12
-	while num < n_dim:
-		num *= 2
-	return num
 
 def run_test_suite(idx):
 	tests = get_test_suite()
@@ -54,7 +48,7 @@ def run_test_suite(idx):
 		for test in tests:
 			takers = get_test_takers(i, test)
 			for taker in takers:
-				taker.initialize_input(test, sample_size=10**4, num_init=nearest_init_num(test.dim), seed=idx, silent=True)
+				taker.initialize_input(test, sample_size=10**4, seed=idx, silent=True)
 				t_0 = time.process_time()
 				result = taker.kriging_estimate(do_mcs=False)
 				t_elapsed = time.process_time()-t_0
