@@ -173,7 +173,6 @@ class AKMCS:
 		return False
 
 	def compute_failure_probability(self, do_mcs):
-		# STEP8: Compute coefficient of variation of the probability of failure
 		N_MCS = self.input_space.shape[0]
 		mean, var = self.model.execute(self.input_space)
 		num_negative_predictions = np.sum(mean < 0)
@@ -212,7 +211,7 @@ class AKMCS:
 
 		matplotlib.rcParams["mathtext.fontset"]="cm"
 		############################################################
-		# subset sample evolution
+		# Animate the adaptive sample pool evolves over time
 		if len(self.sample_history) > 0:
 			fig, ax = plt.subplots()
 			artists = []
@@ -227,8 +226,6 @@ class AKMCS:
 				artists.append([sample_plot, selection_plot, txt])
 			ani = animation.ArtistAnimation(fig=fig, artists=artists, interval=200)
 			plt.show()
-
-
 		############################################################
 		# Visualization
 		# Density of grid for visualization
@@ -251,28 +248,24 @@ class AKMCS:
 		ax.set_ylabel(r"$x_2$", fontsize=12)
 		#plt.title('Kriging Interpolation')
 
-		# Mesh
-		x1_grid, x2_grid = np.meshgrid(grid_x, grid_y)
-
 		# Query G on the grid
 		G_values = np.zeros((N_GRID, N_GRID))
 		for i in range(len(grid_x)):
 			for j in range(len(grid_y)):
 				G_values[i,j] = self.obj_func.evaluate([grid_x[i], grid_y[j]])
 
-		# Actual limit state i.e. G(x1, x2)=0
-		contours = ax.contour(x1_grid, x2_grid, G_values, levels=[0], colors='b')
+		# Actual limit state i.e. f(x, y)=0
+		contours = ax.contour(xpts, ypts, G_values, levels=[0], colors='blue')
 
-		# Level 0, the estimate of the limit state by the kriging model
+		# Estimated limit state by the kriging model
 		contours = ax.contour(grid_x, grid_y, z, levels=[0], colors="red", linewidths=2, linestyles='dashed')
 
-		# Plot the points queried
-		ax.scatter(self.doe_input[:12, 0], self.doe_input[:12, 1], marker="v", s=5, c="magenta", label=r"$\mathcal{B}_0$")
-		ax.scatter(self.doe_input[12:, 0], self.doe_input[12:, 1], marker="o", s=5, c="black", label="Samples added")
+		# Plot the initial training samples
+		ax.scatter(self.doe_input[:self.num_init, 0], self.doe_input[:self.num_init, 1], marker="v", s=5, c="magenta", label=r"$\mathcal{B}_0$")
+		# Plot the samples added
+		ax.scatter(self.doe_input[self.num_init:, 0], self.doe_input[self.num_init:, 1], marker="o", s=5, c="black", label="Samples added")
 
-		# Kriging model contour
-		#ax.contour(grid_x, grid_y, z, colors='white', linewidths=1, linestyles='dashed', alpha=0.5)
-
+		# Legend for the acual and estimated limit state
 		handles, _ = ax.get_legend_handles_labels()
 		est_limit_state = Line2D([0], [0], label=r"$\hat{f}(\mathbf{x})=0$", color="red", linestyle='dashed')
 		actual_limit_state = Line2D([0], [0], label=r"$f(\mathbf{x})=0$", color="blue")
