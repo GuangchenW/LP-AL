@@ -5,7 +5,7 @@ from scipy.stats import norm, gumbel_r, uniform
 
 class G_Oscillator(BaseObjectiveFunction):
 	def __init__(self):
-		super().__init__(name="nonlinear_oscillator", dim=6)
+		super().__init__(name="nonlinear_oscillator", ndim=6)
 		self.failure_probability = 0.02865
 
 	def _evaluate(self, x):

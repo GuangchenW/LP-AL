@@ -5,7 +5,7 @@ from scipy.stats import norm
 
 class G_4B(BaseObjectiveFunction):
 	def __init__(self):
-		super().__init__(name="4B", dim=2)
+		super().__init__(name="4B", ndim=2)
 		self.k = 7
 		self.failure_probability = 0.002230
 

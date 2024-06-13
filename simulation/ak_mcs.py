@@ -29,6 +29,9 @@ class AKMCS:
 		self.name = self.evaluator.name+"_"+self.acq_func.name
 
 	# TODO1: universal ask-tell interface for when user doesn't want to write a objective function class.
+	# TODO1.1: Generate sample pool from number defining the distribution and text identifying the type of distribution.
+	# TODO1.2: Figure out how LIF can be used with this (need pdf to work)
+	# TODO1alt: Give a base class for ask-tell interface and let user derive from it themselves.
 	# TODO2: implement easier to use verbose settings
 	def initialize_input(self, 
 		obj_func, 
@@ -47,12 +50,12 @@ class AKMCS:
 		:param seed: Random seed for the algorithm. Deafults to 1.
 		"""
 		self.obj_func = obj_func
-		self.model = OrdinaryKriging(n_dim=self.obj_func.dim)
+		self.model = OrdinaryKriging(n_dim=self.obj_func.ndim)
 		self.input_space = obj_func.load_data()
 		self.sample_size = sample_size if sample_size else 10**4
 		# If no initial inputs provided, use a numer of random samples equal to 
 		# the smallest multiple of 12 larger than the dimension of the system.
-		self.num_init = bootstrap_inputs.shape[0] if bootstrap_inputs else 12 * (obj_func.dim // 12 + 1)
+		self.num_init = bootstrap_inputs.shape[0] if bootstrap_inputs else 12 * (obj_func.ndim // 12 + 1)
 		self.sampler.obj_func = obj_func
 
 		self.prob_history = []
@@ -166,7 +169,7 @@ class AKMCS:
 			self.training_outputs, 
 			self.batch_size)
 
-		# Update doe with batch
+		# Update training set with batch
 		for candidate in batch:
 			self.training_inputs = np.append(self.training_inputs, [candidate["next"]], axis=0)
 			self.training_outputs = np.append(

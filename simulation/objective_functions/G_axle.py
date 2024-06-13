@@ -5,7 +5,7 @@ import numpy as np
 class G_Axle(BaseObjectiveFunction):
 	def __init__(self):
 		# An active learning Bayesian... Xiao et al. 2022
-		super().__init__(name="front_axle", dim=6)
+		super().__init__(name="front_axle", ndim=6)
 
 	def _evaluate(self, x):
 	    a,b,t,h,M,T = x

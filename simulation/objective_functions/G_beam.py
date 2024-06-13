@@ -4,7 +4,7 @@ import numpy as np
 
 class G_Beam(BaseObjectiveFunction):
 	def __init__(self):
-		super().__init__(name="cantilever_beam", dim=3)
+		super().__init__(name="cantilever_beam", ndim=3)
 
 	def _evaluate(self, x):
 		w=x[0]

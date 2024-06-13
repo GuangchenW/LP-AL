@@ -5,7 +5,7 @@ from scipy.stats import norm
 
 class G_Ras(BaseObjectiveFunction):
 	def __init__(self):
-		super().__init__(name="modified_rastrigin", dim=2)
+		super().__init__(name="modified_rastrigin", ndim=2)
 		self.d = 5
 		self.failure_probability = 0.2941
 

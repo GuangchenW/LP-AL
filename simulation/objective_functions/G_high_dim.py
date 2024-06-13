@@ -5,7 +5,7 @@ import numpy as np
 class G_High_Dim(BaseObjectiveFunction):
 	def __init__(self):
 		# An improved AK-MCS... Liu et al. 2016
-		super().__init__(name="high_dimensional", dim=20)
+		super().__init__(name="high_dimensional", ndim=20)
 
 	def _evaluate(self, x):
 		term_sum = x.sum()

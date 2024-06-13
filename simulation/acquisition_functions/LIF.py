@@ -18,7 +18,7 @@ class LIF(BaseAcquisitionFunction):
 		doe_input,
 		doe_response,
 	):
-		acq = np.array([self._LIF(pnt, mu, var, self.obj_func.dim, self.obj_func.logpdf(pnt)) for pnt, mu, var in zip(subset_points, mean, variance)])
+		acq = np.array([self._LIF(pnt, mu, var, self.obj_func.ndim, self.obj_func.logpdf(pnt)) for pnt, mu, var in zip(subset_points, mean, variance)])
 		
 		# Up-shift the acquisiton values so min(acq(x))>=0.
 		# This is done so it can be scaled with penalties for batching.
