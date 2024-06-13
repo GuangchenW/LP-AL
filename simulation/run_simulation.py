@@ -44,7 +44,7 @@ def run_test_single():
 		prob += norm.logpdf(x2, 0, 1)
 		return prob
 
-	test = AnalyticalFunction(name="TestAskTell", ndim=2, data_definition=data_def, data_logpdf=data_logpdf, limit_state_function=ls_func)
+	test = AnalyticalFunction(name="TestAskTell", ndim=2, variable_definition=data_def, variable_logpdf=data_logpdf, limit_state_function=ls_func)
 	#taker = AKMCS(acq_func=U(), sampler=U_Sampler(), evaluator=KB_Batch(acq_func=None), batch_size=4)
 	#taker = AKMCS(acq_func=U(), sampler=U_Sampler(), evaluator=KMedoid_Batch(acq_func=None), batch_size=1)
 	taker = AKMCS(acq_func=U(), sampler=U_Sampler(), batch_size=12)
