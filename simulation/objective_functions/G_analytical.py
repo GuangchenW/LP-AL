@@ -6,9 +6,9 @@ class AnalyticalFunction(BaseObjectiveFunction):
 		"""
 		:param name: Name of this function.
 		:param ndim: Number of variables.
-		:param variable_definition: A lambda function that takes no argument. Returns a randomly generated input sample as numpy array.
-		:param variable_logpdf: A lambda function that takes an input sample as argument. Returns the log joint pdf of the input sample.
-		:param limit_state_function: A lambda function that takes an input sample as argument. Returns the evaluation of the limit-state function.
+		:param variable_definition: A function that takes no argument. Returns a randomly generated input sample as numpy array.
+		:param variable_logpdf: A function that takes an input sample as argument. Returns the log joint pdf of the input sample.
+		:param limit_state_function: A function that takes an input sample as argument. Returns the evaluation of the limit-state function.
 		:param failure_probability: Precomputed true probability of failure. If ``None`` or negative, MCS will be used. (Default: ``None``) 
 		"""
 		self.variable_definition = variable_definition
