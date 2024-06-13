@@ -28,10 +28,6 @@ class AKMCS:
 		self.batch_size = batch_size
 		self.name = self.evaluator.name+"_"+self.acq_func.name
 
-	# TODO1: universal ask-tell interface for when user doesn't want to write a objective function class.
-	# TODO1.1: Generate sample pool from number defining the distribution and text identifying the type of distribution.
-	# TODO1.2: Figure out how LIF can be used with this (need pdf to work)
-	# TODO1alt: Give a base class for ask-tell interface and let user derive from it themselves.
 	# TODO2: implement easier to use verbose settings
 	def initialize_input(self, 
 		obj_func, 
@@ -88,7 +84,7 @@ class AKMCS:
 
 	def check_convergence(self, mean, variance):
 		"""
-		:return: Whether the relative error has converged.
+		:return: `True` if the relative error has converged, `False` otherwise.
 		"""
 		# Compute estimated relative error epsilon_max
 		epsilon_max, should_stop = self.stopper(mean, variance)
@@ -97,7 +93,7 @@ class AKMCS:
 
 	def check_coefficient_variation(self, mean, threshold=0.05):
 		"""
-		:return: True if coefficient of variation is less or equal to threshold, False otherwise.
+		:return: `True` if coefficient of variation is less or equal to threshold, `False` otherwise.
 		"""
 		# Compute coefficient of variation
 		num_failures = np.sum(mean < 0)
@@ -117,6 +113,14 @@ class AKMCS:
 			return True
 
 	def kriging_step(self, iter_count):
+		"""
+		One iteration of the LP-AL algorithm.
+		1) Fit Kriging model
+		2) Check convergence/coefficient of variation
+		3) Update adaptive sample pool
+		4) Compute L and acquire batch
+		5) Update training set
+		"""
 		# Construct Kriging model
 		self.model.train(self.training_inputs, self.training_outputs)
 
@@ -215,14 +219,23 @@ class AKMCS:
 			"re": abs(MCS_prob_failure-est_prob_failure)/MCS_prob_failure
 		}
 
-	def visualize(self):
+	def visualize(self, mk_sample_pool_anim=False, save_visual=False, filename=["plot.png","sample_pool.gif"] ):
+		"""
+		Visualize the Kriging model and estimated limit state.
+		Only works for 2D systems.
+
+		:param mk_sample_pool_anim: Whether to make an animation of adaptive sample pool changing over time. (Default: `False`)
+		:param save_visual: Whether to save the visualizations. (Default: `False`)
+		:param filename: Files to save to. (Deafult: ``["plot.png","sample_pool.gif"]``)
+		"""
 		if not self.training_inputs.shape[1] == 2:
+			print("Visualization only available for systems with 2 variables!")
 			return
 
 		matplotlib.rcParams["mathtext.fontset"]="cm"
 		############################################################
 		# Animate the adaptive sample pool evolves over time
-		if len(self.sample_history) > 0:
+		if mk_sample_pool_anim and len(self.sample_history) > 0:
 			fig, ax = plt.subplots()
 			artists = []
 			for i in range(len(self.sample_history)):
@@ -283,7 +296,10 @@ class AKMCS:
 		ax.legend(handles=handles, loc=1, prop={"size":10})
 
 		plt.tight_layout()
-		#plt.savefig("plot.png", dpi=300)
-		plt.show()
-
-		#ani.save("sample_selections.gif")
+		if save_visual:
+			plt.savefig(filename[0], dpi=300)
+			if mk_sample_pool_anim:
+				ani.save(filename[1])
+			print("Visualization saved!")
+		else:
+			plt.show()
