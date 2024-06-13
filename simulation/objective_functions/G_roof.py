@@ -12,7 +12,7 @@ class G_Roof(BaseObjectiveFunction):
 
 	    return 0.03-0.5*(q*l**2)*(3.81/(A_c*E_c)+1.13/(A_s*E_s))
 
-	def data_definition(self):
+	def variable_definition(self):
 		q = np.random.normal(2e4, 1600)
 		l = np.random.normal(12, 0.24)
 		E_s = np.random.normal(1.2e11, 8.4e9)

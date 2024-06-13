@@ -11,7 +11,7 @@ class BaseObjectiveFunction(ABC):
 		self.mcp_manager = MCP_Manager()
 		if not self.mcp_manager.data_exists(self.name):
 			print("Monte-Carlo population does not exist, generating...")
-			self.mcp_manager.generate_data(self.name, self.data_definition, min(10**6, 10**(ndim+3)))
+			self.mcp_manager.generate_data(self.name, self.variable_definition, min(10**6, 10**(ndim+3)))
 
 	def evaluate(self, x, denormalize=False):
 		if denormalize:
@@ -35,7 +35,7 @@ class BaseObjectiveFunction(ABC):
 		return data*self.std+self.mean
 
 	@abstractmethod
-	def data_definition(self):
+	def variable_definition(self):
 		"""
 		Generate a data sample based on the system variable distributions.
 		:return: numpy array.
@@ -51,7 +51,7 @@ class BaseObjectiveFunction(ABC):
 		"""
 		pass
 
-	def estimate_failure_prob(self, free=False, n=10**7):
+	def estimate_failure_probability(self, free=False, n=10**7):
 		"""
 		Used for standalone MCS of the probability of failure for this objective function.
 		:param free: If True, samples will be generated on the fly. Otherwise, use saved samples.
@@ -60,7 +60,7 @@ class BaseObjectiveFunction(ABC):
 		n_fail = 0
 		if free:
 			for i in range(n):
-				if self._evaluate(self.data_definition()) < 0:
+				if self._evaluate(self.variable_definition()) < 0:
 					n_fail += 1
 				print("MCS progress [%d/%d]\r" % (i,n), end="")
 			print(n_fail/n)

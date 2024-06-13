@@ -12,7 +12,7 @@ class G_High_Dim(BaseObjectiveFunction):
 
 		return self.dim+0.6*np.sqrt(self.dim)-term_sum
 
-	def data_definition(self):
+	def variable_definition(self):
 		data = []
 
 		for i in range(self.dim):

@@ -14,7 +14,7 @@ class G_Oscillator(BaseObjectiveFunction):
 		val = 2*F*np.sin(w_0*t*0.5)/(m*w_0**2)
 		return 3*r-abs(val)
 
-	def data_definition(self):
+	def variable_definition(self):
 		c1 = np.random.normal(1, 0.1)
 		c2 = np.random.normal(0.1, 0.01)
 		m = np.random.normal(1, 0.05)

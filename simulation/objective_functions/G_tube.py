@@ -5,7 +5,7 @@ from scipy.stats import norm, gumbel_r, uniform
 
 class G_Tube(BaseObjectiveFunction):
 	def __init__(self):
-		super().__init__(name="cantilever_tube", ndim=9)
+		super().__init__(name="cantilever_tube", ndim=9, failure_probability=0.018787)
 		self.failure_probability = 0.018787
 
 	def _evaluate(self, x):
@@ -24,7 +24,7 @@ class G_Tube(BaseObjectiveFunction):
 
 	    return (S_y - sigma_max)*0.1
 
-	def data_definition(self):
+	def variable_definition(self):
 		t = np.random.normal(5, 0.1)
 		d = np.random.normal(42, 0.5)
 		L1 = np.random.uniform(119.75, 120.25)

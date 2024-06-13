@@ -7,8 +7,7 @@ from oct2py import octave
 
 class G_FEM(BaseObjectiveFunction):
 	def __init__(self):
-		super().__init__(name="FEM", ndim=6)
-		self.failure_probability = 14652/1000000
+		super().__init__(name="FEM", ndim=6, failure_probability = 14652/1000000)
 		octave.addpath(os.path.dirname(os.path.realpath(__file__)))
 
 	def _evaluate(self, x):
@@ -18,7 +17,7 @@ class G_FEM(BaseObjectiveFunction):
 
 		return 3.6+response
 
-	def data_definition(self):
+	def variable_definition(self):
 		P1 = np.random.normal(80, 4)
 		P2 = np.random.normal(10, 0.5)
 		P3 = np.random.normal(10, 0.5)

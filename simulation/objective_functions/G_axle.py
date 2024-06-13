@@ -18,7 +18,7 @@ class G_Axle(BaseObjectiveFunction):
 
 	    return (sigma_s-np.sqrt(sigma**2+3*tau**2))
 
-	def data_definition(self):
+	def variable_definition(self):
 		a = np.random.normal(12, 0.06)
 		b = np.random.normal(65, 0.325)
 		t = np.random.normal(14, 0.07)

@@ -12,7 +12,7 @@ class G_Simple(BaseObjectiveFunction):
 
 		return x1**2+x2**2-2
 
-	def data_definition(self):
+	def variable_definition(self):
 		x1 = np.random.normal(0, 1)
 		x2 = np.random.normal(0, 1)
 

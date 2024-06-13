@@ -5,9 +5,8 @@ from scipy.stats import norm
 
 class G_4B(BaseObjectiveFunction):
 	def __init__(self):
-		super().__init__(name="4B", ndim=2)
+		super().__init__(name="4B", ndim=2, failure_probability=0.002230)
 		self.k = 7
-		self.failure_probability = 0.002230
 
 	def _evaluate(self, x):
 		x1=x[0]
@@ -18,7 +17,7 @@ class G_4B(BaseObjectiveFunction):
 		b4 = (x2-x1) + self.k/np.sqrt(2)
 		return np.min([b1, b2, b3, b4])
 
-	def data_definition(self):
+	def variable_definition(self):
 		x1 = np.random.normal(0, 1)
 		x2 = np.random.normal(0, 1)
 

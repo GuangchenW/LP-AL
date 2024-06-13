@@ -5,9 +5,8 @@ from scipy.stats import norm
 
 class G_Ras(BaseObjectiveFunction):
 	def __init__(self):
-		super().__init__(name="modified_rastrigin", ndim=2)
+		super().__init__(name="modified_rastrigin", ndim=2, failure_probability=0.29261)
 		self.d = 5
-		self.failure_probability = 0.2941
 
 	def _evaluate(self, x):
 		x1=x[0]
@@ -18,7 +17,7 @@ class G_Ras(BaseObjectiveFunction):
 		result = self.d - term_sum
 		return result
 
-	def data_definition(self):
+	def variable_definition(self):
 		x1 = np.random.normal(0, 1)
 		x2 = np.random.normal(0, 1)
 
