@@ -9,13 +9,13 @@ from gpytorch.kernels import ScaleKernel, RBFKernel
 
 from .utils import ESC, Logger
 from models import GPRegression, OrdinaryKriging
-from acquisition_functions import ULP
+from acquisition_functions import U
 from evaluators import LP_Batch
 from subset_samplers import U_Sampler
 
 class AKMCS:
 	def __init__(self, acq_func=None, sampler=None, evaluator=None, max_iter=400, batch_size=1):
-		self.acq_func = acq_func if not acq_func == None else ULP()
+		self.acq_func = acq_func if not acq_func == None else U()
 		self.sampler = sampler if not sampler == None else U_Sampler(threshold=4)
 		#self.sampler.aggressive_mode(True)
 		if evaluator:
