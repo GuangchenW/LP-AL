@@ -14,12 +14,27 @@ class BaseObjectiveFunction(ABC):
 			self.mcp_manager.generate_data(self.name, self.variable_definition, min(10**6, 10**(ndim+3)))
 
 	def evaluate(self, x, denormalize=False):
+		"""
+		Evaluates the limit-state function on input `x`.
+
+		:param x: The input.
+		:param denormalize: If True, `x` will be denormalized based on the loaded data. (Default: ``False``)
+
+		:return: Output of the limit-state function at `x`.
+		"""
 		if denormalize:
 			x = self.denormalize_data(x)
 		return self._evaluate(x)
 
 	@abstractmethod
 	def _evaluate(self, x):
+		"""
+		Helper method for `evaluate`.
+
+		:param x: The input.
+
+		:return: Output of the limit-state function at `x`.
+		"""
 		pass
 
 	def load_data(self):
@@ -45,17 +60,21 @@ class BaseObjectiveFunction(ABC):
 	@abstractmethod
 	def logpdf(self, x):
 		"""
-		Returns the probability density at x. May need to be exponetiated at some point.
+		Returns the probability density at `x`. May need to be exponetiated at some point.
 		At power of ~-755 python precision insufficient and just gives 0, but such a small probability density shouldn't matter anyway.
-		:return: The log pdf of x based on data definition. 
+		
+		:param x: The input sample.
+
+		:return: The log pdf of `x` based on data definition. 
 		"""
 		pass
 
 	def estimate_failure_probability(self, free=False, n=10**7):
 		"""
 		Used for standalone MCS of the probability of failure for this objective function.
-		:param free: If True, samples will be generated on the fly. Otherwise, use saved samples.
-		:param n: Number of samples to use. Default 1e+7.
+
+		:param free: If ``True``, samples will be generated on the fly. Otherwise, use saved samples.
+		:param n: If `free` is ``True``, the number of samples to use. (Default: 1e+7)
 		"""
 		n_fail = 0
 		if free:

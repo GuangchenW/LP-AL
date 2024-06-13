@@ -5,7 +5,7 @@ class AskTellFunction(BaseObjectiveFunction):
 		"""
 		The Ask-Tell interface will not perform MCS on the limit-state function 
 		and thus requires a precomputed probability of failure for comparison. If a comparison between 
-		the estimation and the truth is undesirable, `do_mcs` should be False when calling `kriging_estimate`.
+		the estimation and the truth is undesirable, ``do_mcs`` should be False when calling ``kriging_estimate``.
 
 		:param name: Name of this function.
 		:param ndim: Number of variables.
