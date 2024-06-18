@@ -3,7 +3,7 @@ import numpy as np
 from .sampler import Sampler
 
 class U_Sampler(Sampler):
-	def __init__(self, threshold=1.96):
+	def __init__(self, threshold=4):
 		super().__init__()
 		self.threshold = threshold
 
