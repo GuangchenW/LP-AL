@@ -44,14 +44,16 @@ def run_test_single():
 		prob += norm.logpdf(x2, 0, 1)
 		return prob
 
-	test = AnalyticalFunction(name="TestAskTell", ndim=2, variable_definition=data_def, variable_logpdf=data_logpdf, limit_state_function=ls_func)
+	#test = AnalyticalFunction(name="TestAskTell", ndim=2, variable_definition=data_def, variable_logpdf=data_logpdf, limit_state_function=ls_func)
+	test = G_Ras()
+
 	#taker = AKMCS(acq_func=U(), sampler=U_Sampler(), evaluator=KB_Batch(acq_func=None), batch_size=4)
 	#taker = AKMCS(acq_func=U(), sampler=U_Sampler(), evaluator=KMedoid_Batch(acq_func=None), batch_size=1)
-	taker = AKMCS(acq_func=U(), sampler=U_Sampler(), batch_size=12)
-	taker.initialize_input(test, sample_size=10**4, seed=10, silent=False, debug=True)
-	result = taker.kriging_estimate(do_mcs=True)
+	taker = AKMCS(acq_func=LIF(test), sampler=U_Sampler(), batch_size=8)
+	taker.initialize_input(test, sample_size=10**4, seed=46, silent=False, debug=True)
+	result = taker.kriging_estimate(do_mcs=False)
 	print(result)
-	taker.visualize()
+	taker.visualize(mk_sample_pool_anim=True, save_visual=True)
 
 def run_test_suite(idx):
 	tests = get_test_suite()

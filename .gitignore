@@ -168,3 +168,6 @@ cython_debug/
 *.gif
 *.txt
 *.npy
+
+!additional_figures/*.png
+!additional_figures/*.gif

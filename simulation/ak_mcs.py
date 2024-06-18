@@ -219,7 +219,7 @@ class AKMCS:
 			"re": abs(MCS_prob_failure-est_prob_failure)/MCS_prob_failure
 		}
 
-	def visualize(self, mk_sample_pool_anim=False, save_visual=False, filename=["plot.png","sample_pool.gif"] ):
+	def visualize(self, mk_sample_pool_anim=False, save_visual=False, filename=["limit_state_plot.png","sample_selections.gif"] ):
 		"""
 		Visualize the Kriging model and estimated limit state.
 		Only works for 2D systems.
@@ -240,11 +240,11 @@ class AKMCS:
 			artists = []
 			for i in range(len(self.sample_history)):
 				samples = np.array(self.sample_history[i]).T
-				sample_plot = ax.scatter(samples[0],samples[1], c="blue", s=2)
+				sample_plot = ax.scatter(samples[0], samples[1], c="blue", s=2)
 				doe_range_l = self.num_init+i*self.batch_size
 				doe_range_u = self.num_init+(i+1)*self.batch_size
 				selection = self.training_inputs[doe_range_l:doe_range_u].T
-				selection_plot = ax.scatter(selection[0], selection[1],c="red",s=4)
+				selection_plot = ax.scatter(selection[0], selection[1], marker="*", c="red", s=10)
 				txt = ax.text(0.05,0.05, str(i), ha="right", va="bottom", transform=fig.transFigure)
 				artists.append([sample_plot, selection_plot, txt])
 			ani = animation.ArtistAnimation(fig=fig, artists=artists, interval=200)
@@ -253,8 +253,8 @@ class AKMCS:
 		# Visualization
 		# Density of grid for visualization
 		N_GRID = 400
-		grid_x = np.linspace(-5, 5, N_GRID)
-		grid_y = np.linspace(-5, 5, N_GRID)
+		grid_x = np.linspace(-4.2, 4.2, N_GRID)
+		grid_y = np.linspace(-4.2, 4.2, N_GRID)
 		xpts, ypts = np.meshgrid(grid_x, grid_y)
 		pts = np.dstack((xpts.ravel(), ypts.ravel()))
 		z, ss = self.model.execute(pts[0])
