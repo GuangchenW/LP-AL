@@ -23,5 +23,5 @@
 ### Limit-state function
 * Two plug-n-play classes, `AskTellFunction` and `AnalyticalFunction`, are provided for creating limit-state functions and automatically generating input samples.
 * The `AskTellFunction` class is designed for cases where the limit-state function cannot be evaluated through a computer program. The user will be prompted with an input each time the limit-state function needs to be evaluated. The user should enter the output as a floating point number and press enter. 
-* The `AnalyticalFunction` class is designed for cases where evaluations of the limit-state function can be automated with a computer program. For example usages, see `run_simulation.py`.
+* The `AnalyticalFunction` class is designed for cases where evaluations of the limit-state function can be automated with a computer program. For example usages, see `examples.py`.
 
