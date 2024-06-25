@@ -13,7 +13,6 @@ Example systems and their respective limit-state functions are provided for test
 
 ![Batch selections by LP-AL](https://github.com/GuangchenW/LP-AL/blob/main/additional_figures/4B_U_8.gif)
 *Batch selections by LP-AL using the U learning function when batch size is set to 8. The blue points represents the reduced sample pool and the red points are selected for the current batch. Number at bottom left indicates the number of iterations.*
----
 
 ## Requirements
 * Project developed with `python3.10.7` on Windows 11. Source code is platform independent but untested on macOS and Linux.
