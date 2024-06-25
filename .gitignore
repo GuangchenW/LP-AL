@@ -171,3 +171,4 @@ cython_debug/
 
 !additional_figures/*.png
 !additional_figures/*.gif
+!additional_figures/*.txt
