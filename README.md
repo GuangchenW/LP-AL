@@ -1,5 +1,20 @@
 # Local Penalization Adaptive Learning (LP-AL)
 
+## Description
+The project contains the source code used in "Parallelizing Adaptive Reliability Analysis through Penalizaing the Learning Function" (currently under review). The code provides the ability to:
+* Automatically generate samples needed based on variable distributions.
+* Automate and parallelize the adaptive reliability analysis process.
+* Allow direct user interaction with the optimization process through an ask-tell interface.
+
+Example systems and their respective limit-state functions are provided for testing purposes. Five learning functions are also provided. However, more can be implemented by the user. The following figures demonstrates the effectiveness of LP-AL using a simple 2D example.
+
+![Limit state estimation by LP-AL]((https://github.com/GuangchenW/LP-AL/blob/main/additional_figures/4B_U_8.png))
+*Estimated limit state and response surface by the LP-AL algorithm using the U learning function when batch size is set to 8. The true limit state function is the four-branch series system described in `objective_functions/G_4B.py`*
+
+![Batch selections by LP-AL](https://github.com/GuangchenW/LP-AL/blob/main/additional_figures/4B_U_8.gif)
+*Batch selections by LP-AL using the U learning function when batch size is set to 8. The blue points represents the reduced sample pool and the red points are selected for the current batch. Number at bottom left indicates the number of iterations.*
+---
+
 ## Requirements
 * Project developed with `python3.10.7` on Windows 11. Source code is platform independent but untested on macOS and Linux.
 * `virtualenv` is required. See [here](https://virtualenv.pypa.io/en/latest/installation.html) for how to install.
