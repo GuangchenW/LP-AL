@@ -8,5 +8,6 @@ from .G_high_dim import G_High_Dim
 from .G_roof import G_Roof
 from .G_simple import G_Simple
 from .G_fem import G_FEM
+from .G_stiffener import G_Stiffener
 from .G_ask_tell import AskTellFunction
 from .G_analytical import AnalyticalFunction

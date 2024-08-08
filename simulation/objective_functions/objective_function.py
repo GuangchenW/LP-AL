@@ -85,9 +85,12 @@ class BaseObjectiveFunction(ABC):
 			print(n_fail/n)
 		else:
 			data = self.load_data()
-			n = len(data)
+			n = min(n,len(data))
+			data = data[:n]
 			for i,d in enumerate(data):
-				if self.evaluate(d, True) < 0:
+				result = self.evaluate(d, True)
+				if result < 0:
 					n_fail += 1
-				print("MCS progress [%d/%d]\r" % (i,n), end="")
+				print("Result:%f | MCS progress [%d/%d]\r" % (result,i,n), end="")
+			print("\n")
 			print(n_fail/n)

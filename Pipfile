@@ -12,6 +12,10 @@ wakepy = "*"
 oct2py = "*"
 tensorflow-probability = "~=0.18.0"
 scikit-learn-extra = "*"
+matlabengine = "*"
+numpy = "==1.26.4"
+pyansys = "*"
+ansys-mapdl-core = "*"
 
 [dev-packages]
 
