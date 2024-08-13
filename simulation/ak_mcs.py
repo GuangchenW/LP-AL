@@ -79,7 +79,7 @@ class AKMCS:
 		result = self.compute_failure_probability(do_mcs=do_mcs)
 		result["iter"] = i
 
-		print(repr(self.prob_history))
+		#print(repr(self.prob_history))
 		return result
 
 	def check_convergence(self, mean, variance):
@@ -128,7 +128,7 @@ class AKMCS:
 			# Obtain mean, variance and expected gradient for all samples
 			mean, variance, grad = self.model.execute(self.kriging_sample, with_grad=True)
 			
-			self.prob_history.append(np.sum(mean<0)/len(mean))
+			#self.prob_history.append(np.sum(mean<0)/len(mean))
 
 			has_converged = self.check_convergence(mean, variance)
 

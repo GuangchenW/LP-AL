@@ -9,5 +9,6 @@ from .G_roof import G_Roof
 from .G_simple import G_Simple
 from .G_fem import G_FEM
 from .G_stiffener import G_Stiffener
+from .G_stiffener2 import G_Stiffener2
 from .G_ask_tell import AskTellFunction
 from .G_analytical import AnalyticalFunction

@@ -8,7 +8,7 @@ import tensorflow as tf
 from wakepy import keep
 
 from simulation import AKMCS
-from objective_functions import G_Simple, G_4B, G_Ras, G_Oscillator, G_Tube, G_FEM, G_Stiffener, AskTellFunction, AnalyticalFunction
+from objective_functions import G_Simple, G_4B, G_Ras, G_Oscillator, G_Tube, G_FEM, G_Stiffener2, AskTellFunction, AnalyticalFunction
 from acquisition_functions import U, EFF, ERF, H, LIF, VAR
 from evaluators import LP_Batch, NLP_Batch, KMeans_Batch, KB_Batch
 from subset_samplers import U_Sampler, ImportanceSampler, NaiveSampler
@@ -46,12 +46,12 @@ def run_test_single():
 		return prob
 	"""
 	#test = AnalyticalFunction(name="TestAskTell", ndim=2, variable_definition=data_def, variable_logpdf=data_logpdf, limit_state_function=ls_func)
-	test = G_Stiffener()
+	test = G_Stiffener2()
 
-	#taker = AKMCS(acq_func=U(), sampler=U_Sampler(), evaluator=KB_Batch(acq_func=None), batch_size=4)
+	taker = AKMCS(acq_func=U(), sampler=U_Sampler(), evaluator=KB_Batch(acq_func=None), batch_size=8)
 	#taker = AKMCS(acq_func=U(), sampler=U_Sampler(), evaluator=KMedoid_Batch(acq_func=None), batch_size=1)
-	taker = AKMCS(acq_func=U(), sampler=U_Sampler(), batch_size=2)
-	taker.initialize_input(test, sample_size=10**4, seed=10, silent=False, debug=True) #46?
+	#taker = AKMCS(acq_func=LIF(test), sampler=U_Sampler(), batch_size=8)
+	taker.initialize_input(test, sample_size=10**4, seed=7, silent=False, debug=True) #46?
 	result = taker.kriging_estimate(do_mcs=False)
 	print(result)
 	taker.visualize(mk_sample_pool_anim=True, save_visual=True)
@@ -76,11 +76,11 @@ def run_test_suite(idx):
 			print(datetime.datetime.now())
 
 if __name__ == "__main__":
-	run_suite = False
+	run_suite = True
 	if not run_suite:
 		run_test_single()
 	else:
 		with keep.running() as k:
-			for i in range(10,20):
+			for i in range(0,10):
 				run_test_suite(i)
 
